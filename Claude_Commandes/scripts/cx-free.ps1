@@ -1,4 +1,4 @@
-# cx-free.ps1 — Pont Claude Code -> Codex CLI sur provider GRATUIT (DeepSeek/HF/NVIDIA via proxy LiteLLM).
+# cx-free.ps1 - Pont Claude Code -> Codex CLI sur provider GRATUIT (DeepSeek/Kimi/HF/NVIDIA via proxy LiteLLM).
 # Modes : review (revue), critique (revue adversariale), task (demande libre), status (etat proxy/providers).
 # Usage :
 #   pwsh -NoProfile -File cx-free.ps1 -Mode review   -Provider deepseek [-Base main] [-Repo <dir>]
@@ -27,7 +27,7 @@ if ($Mode -eq 'status') {
       Write-Host ("Modeles servis : " + (($m.data | ForEach-Object { $_.id }) -join ', '))
     } catch { Write-Host "  (/v1/models injoignable : $($_.Exception.Message))" }
   }
-  Write-Host "Providers cx-free : deepseek (defaut), deepseek-pro, hf, nvidia, glm"
+  Write-Host "Providers cx-free : deepseek (defaut), deepseek-pro, kimi-k2.6, kimi-k3, hf, nvidia, glm"
   exit 0
 }
 
@@ -35,10 +35,12 @@ if ($Mode -eq 'status') {
 switch ($Provider.ToLower()) {
   { $_ -in 'deepseek','ds','deepseek-flash' } { $model = 'deepseek-flash' }
   'deepseek-pro'                              { $model = 'deepseek-pro' }
+  { $_ -in 'kimi','kimi-k2.6','k2.6' }        { $model = 'kimi-k2.6' }
+  { $_ -in 'kimi-k3','k3' }                   { $model = 'kimi-k3' }
   { $_ -in 'hf','huggingface','qwen' }        { $model = 'hf' }
   { $_ -in 'nvidia','nvidia-deepseek','nv' }  { $model = 'nvidia-deepseek' }
   { $_ -in 'glm','nvidia-glm' }               { $model = 'nvidia-glm' }
-  default { Write-Error "Provider inconnu '$Provider' (deepseek|deepseek-pro|hf|nvidia|glm)"; exit 2 }
+  default { Write-Error "Provider inconnu '$Provider' (deepseek|deepseek-pro|kimi-k2.6|kimi-k3|hf|nvidia|glm)"; exit 2 }
 }
 
 # --- proxy LiteLLM 4000 up (sinon demarrage detache) ---

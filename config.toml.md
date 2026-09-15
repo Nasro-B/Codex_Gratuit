@@ -83,7 +83,7 @@ model_provider = "ollama-launch-codex-app"
 
 Nécessite `ollama signin` préalable.
 
-### LiteLLM — pont pour DeepSeek / NVIDIA / HuggingFace
+### LiteLLM - pont pour DeepSeek / Kimi / NVIDIA / HuggingFace
 
 ```toml
 [model_providers.litellm]
@@ -95,7 +95,7 @@ model_catalog_json = "C:\\Serveurs\\Codex Gratuit\\litellm-codex\\litellm-models
 
 ```
 
-> ⚠️ **Le lanceur ne switche PAS via des profils.** `Set-Default` ([codex-launch.ps1](codex-launch.ps1)) réécrit directement l'entête `model` / `model_provider` (voir plus haut) à chaque lancement. Les noms de modèles valides — qui doivent matcher le `model_list` de `litellm-codex/config.yaml` et les slugs de `litellm-models.json` — sont : `deepseek-flash`, `deepseek-pro`, `nvidia-deepseek`, `nvidia-glm`, `hf`. Exemple écrit pour le choix 1 :
+> ⚠️ **Le lanceur ne switche PAS via des profils.** `Set-Default` ([codex-launch.ps1](codex-launch.ps1)) réécrit directement l'entête `model` / `model_provider` (voir plus haut) à chaque lancement. Les noms de modèles valides - qui doivent matcher le `model_list` de `litellm-codex/config.yaml` et les slugs de `litellm-models.json` - sont : `deepseek-flash`, `deepseek-v4-pro`, `kimi-k2.6`, `kimi-k3`, `nvidia-deepseek`, `nvidia-glm`, `hf`. Exemple écrit pour le choix 1 :
 >
 > ```toml
 > model = "deepseek-flash"

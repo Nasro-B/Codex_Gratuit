@@ -2,7 +2,7 @@
 ╔══════════════════════════════════════════════════════════════════════╗
 ║                                                                        ║
 ║     C X - F R E E   ·   Codex GRATUIT depuis Claude Code               ║
-║     Review & agent de code par DeepSeek / HuggingFace / NVIDIA         ║
+║     Review & agent de code par DeepSeek / Kimi / HuggingFace / NVIDIA   ║
 ║     ───────────────────────────────────────────────────────────       ║
 ║     Zéro compte OpenAI · Zéro coût · 100 % local (proxy LiteLLM)       ║
 ║                                                                        ║
@@ -11,7 +11,7 @@
 
 ## En une phrase
 
-Tu tapes une commande **dans Claude Code** (ex. `/cx-free-review deepseek`), et c'est **Codex piloté par un LLM gratuit** (DeepSeek, HF ou NVIDIA) qui fait l'analyse — exactement le genre de travail que ferait `/codex:review`, mais **sans ton compte OpenAI** et **sans payer**.
+Tu tapes une commande **dans Claude Code** (ex. `/cx-free-review deepseek`), et c'est **Codex piloté par un LLM gratuit** (DeepSeek, Kimi, HF ou NVIDIA) qui fait l'analyse - exactement le genre de travail que ferait `/codex:review`, mais **sans ton compte OpenAI** et **sans payer**.
 
 ---
 
@@ -21,7 +21,7 @@ Tu tapes une commande **dans Claude Code** (ex. `/cx-free-review deepseek`), et 
   /codex:review  ──►  reviewer NATIF Codex  ──►  ☁️ OpenAI  ──►  💳 compte payant requis
                                                                   ❌ marche pas en DeepSeek
 
-  /cx-free-review ─►  codex exec -m deepseek ─►  🖥️ proxy LiteLLM :4000  ─►  DeepSeek/HF/NVIDIA
+  /cx-free-review ─►  codex exec -m deepseek ─►  🖥️ proxy LiteLLM :4000  ─►  DeepSeek/Kimi/HF/NVIDIA
                                                                   ✅ gratuit · ✅ providers libres
 ```
 
@@ -42,7 +42,7 @@ Tu tapes une commande **dans Claude Code** (ex. `/cx-free-review deepseek`), et 
 └──────────────────────────────┴───────────────────────────────────────────────┘
 ```
 
-**Providers** (`[prov]`) : `deepseek` (défaut) · `deepseek-pro` · `hf` · `nvidia` · `glm`
+**Providers** (`[prov]`) : `deepseek` (défaut) · `deepseek-pro` · `kimi-k2.6` · `kimi-k3` · `hf` · `nvidia` · `glm`
 **Cible review** (`[ref]`) : vide = travail non commité · `main` = ta branche comparée à `main`
 
 ---
@@ -76,7 +76,7 @@ Tu tapes une commande **dans Claude Code** (ex. `/cx-free-review deepseek`), et 
 /cx-free-review deepseek            # review du travail non commité par DeepSeek
 /cx-free-review hf main             # review de ta branche vs main par HuggingFace
 /cx-free-task nvidia explique-moi ce que fait ce module
-/cx-free-critique deepseek-pro      # revue adversariale par DeepSeek V4 Pro
+/cx-free-critique kimi-k3            # revue adversariale par Kimi K3
 /cx-free-task deepseek --write ajoute la gestion d'erreur manquante dans api.js
 /cx-free-status                     # proxy + modèles dispo
 ```
@@ -93,7 +93,7 @@ Tu tapes une commande **dans Claude Code** (ex. `/cx-free-review deepseek`), et 
       │                                                 │
       │  (2) codex exec -c model_provider=litellm        │ route vers
       │       -m hf  --sandbox read-only -o rapport.txt  ▼
-      ▼                                            HuggingFace / DeepSeek / NVIDIA
+      ▼                                            HuggingFace / DeepSeek / Kimi / NVIDIA
   Codex CLI (agent: git diff, lit les fichiers, raisonne)
       │
       │  (3) rapport final propre
@@ -125,7 +125,7 @@ pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1"
 ## Bonus : aussi DANS l'app Codex
 
 Le dossier installe aussi 2 slash-commandes **directement dans l'application Codex** (via `~/.codex/prompts/`) :
-- `/relire` — revue de code sur le provider actif (DeepSeek/HF/NVIDIA).
+- `/relire` - revue de code sur le provider actif (DeepSeek/Kimi/HF/NVIDIA).
 - `/relire-critique` — revue adversariale.
 
 Tu les tapes dans l'app Codex elle-même quand tu y es déjà, en complément des `/cx-free-*` côté Claude Code.

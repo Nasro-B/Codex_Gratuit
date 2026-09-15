@@ -1,10 +1,10 @@
-# codex-launch.ps1 — Choisis un modele, l'APPLICATION Codex demarre dessus.
+﻿# codex-launch.ps1 — Choisis un modele, l'APPLICATION Codex demarre dessus.
 # DeepSeek/NVIDIA/HF/OpenAI/Ollama : MCP externes conserves — Codex les gere cote app,
 # le callback codex_deepseek_fix reordonne les tool_calls pour DeepSeek (valide 2026-07-02).
 # Double-clic sur le raccourci "Codex (menu)".
 
 # Homes Codex isoles :
-#  - FREE_HOME   = providers gratuits (LiteLLM/DeepSeek/NVIDIA/HF/Ollama) -> gere par CE launcher
+#  - FREE_HOME   = providers gratuits (LiteLLM/DeepSeek/Kimi/NVIDIA/HF/Ollama) -> gere par CE launcher
 #  - OPENAI_HOME = compte OpenAI par defaut (app desktop standard) -> jamais touche par ce launcher
 $FREE_HOME = "$env:USERPROFILE\.codex-openai"
 $OPENAI_HOME = "$env:USERPROFILE\.codex"
@@ -60,15 +60,17 @@ function Port-Up([int]$p) {
 }
 
 function Ensure-Proxy {
-  if ((Port-Up 4000) -and (Port-Up 4001)) { Write-Host "[ok] proxy LiteLLM + pont 4001 deja allumes" -ForegroundColor Green; return }
+  if ((Port-Up 4000) -and (Port-Up 4001)) { Write-Host "[ok] proxy LiteLLM + pont 4001 deja allumes" -ForegroundColor Green; return $true }
   Write-Host "[..] demarrage du proxy LiteLLM + pont 4001..." -ForegroundColor Yellow
   $proxyDir = Split-Path $PROXY
   Start-Process pwsh -ArgumentList '-NoExit', '-File', "`"$PROXY`"" -WorkingDirectory $proxyDir -WindowStyle Minimized
-  for ($i = 0; $i -lt 40; $i++) {
+  for ($i = 0; $i -lt 60; $i++) {
     Start-Sleep -Seconds 1
-    if ((Port-Up 4000) -and (Port-Up 4001)) { Start-Sleep -Seconds 2; Write-Host "[ok] proxy pret (4000 + 4001)" -ForegroundColor Green; return }
+    if ((Port-Up 4000) -and (Port-Up 4001)) { Start-Sleep -Seconds 2; Write-Host "[ok] proxy pret (4000 + 4001)" -ForegroundColor Green; return $true }
   }
-  Write-Host "[!] proxy pas pret apres 40s — verifie la fenetre minimisee" -ForegroundColor Red
+  Write-Host "[!] proxy pas pret apres 60s — l'app N'EST PAS lancee (elle partirait en timeout)." -ForegroundColor Red
+  Write-Host "    Regarde l'erreur dans la fenetre pwsh minimisee, corrige, puis relance le menu." -ForegroundColor Red
+  return $false
 }
 
 # Ecrit le modele+provider choisi comme DEFAUT (l'app Codex lit le defaut au demarrage)
@@ -195,9 +197,12 @@ function Update-LiteLLMConfig([string]$menuModel) {
 
   $wcThink = $false
   $wcThinkDS = $false
+  $wcThinkKimi26 = $false
   switch ($menuModel) {
     'deepseek-flash' { $wcModel = 'deepseek/deepseek-v4-flash'; $wcBase = 'https://api.deepseek.com'; $wcKey = 'DEEPSEEK_API_KEY' }
     'deepseek-v4-pro' { $wcModel = 'deepseek/deepseek-v4-pro'; $wcBase = 'https://api.deepseek.com'; $wcKey = 'DEEPSEEK_API_KEY'; $wcThinkDS = $true }
+    'kimi-k2.6' { $wcModel = 'moonshot/kimi-k2.6'; $wcBase = 'https://api.moonshot.ai/v1'; $wcKey = 'MOONSHOT_API_KEY'; $wcThinkKimi26 = $true }
+    'kimi-k3' { $wcModel = 'moonshot/kimi-k3'; $wcBase = 'https://api.moonshot.ai/v1'; $wcKey = 'MOONSHOT_API_KEY' }
     'nvidia-deepseek' { $wcModel = 'nvidia_nim/deepseek-ai/deepseek-v4-pro'; $wcBase = 'https://integrate.api.nvidia.com/v1'; $wcKey = 'NVIDIA_API_KEY_DEEPSEEK'; $wcThink = $true }
     'nvidia-glm' { $wcModel = 'nvidia_nim/z-ai/glm-5.1'; $wcBase = 'https://integrate.api.nvidia.com/v1'; $wcKey = 'NVIDIA_API_KEY_GLM' }
     'hf' { $wcModel = 'huggingface/Qwen/Qwen3-Coder-Next'; $wcBase = ''; $wcKey = 'HF_TOKEN' }
@@ -212,18 +217,21 @@ function Update-LiteLLMConfig([string]$menuModel) {
   $wc.Add("      use_chat_completions_api: true")
   if ($wcThink) { $wc.Add('      extra_body: {"chat_template_kwargs": {"thinking": false}}') }
   if ($wcThinkDS) { $wc.Add('      reasoning_effort: high'); $wc.Add('      extra_body: {"thinking": {"type": "enabled"}}') }
+  if ($wcThinkKimi26) { $wc.Add('      extra_body: {"thinking": {"type": "enabled"}}') }
   $wcParams = $wc -join "`n"
 
-  # contextes reels : DeepSeek direct 1M, NVIDIA DeepSeek 1M, NVIDIA GLM-5.1 200k, HF/Qwen 256k.
+  # contextes reels : DeepSeek 1M, Kimi K2.6 256k, Kimi K3 1M, NVIDIA GLM-5.1 200k, HF/Qwen 256k.
   # model_info doit etre FRERE de litellm_params (indent 4) — imbrique dedans, LiteLLM l'ignore.
   # Codex lit surtout le catalogue scoped litellm-models.json ; ceci aligne /model/info dessus.
   $dsInfo = "    model_info:`n      context_window: 1048576`n      max_context_window: 1048576"
+  $kimiK26Info = "    model_info:`n      context_window: 262144`n      max_context_window: 262144"
+  $kimiK3Info = "    model_info:`n      context_window: 1048576`n      max_context_window: 1048576"
   $nvDsInfo = "    model_info:`n      context_window: 1048576`n      max_context_window: 1048576"
   $glmInfo = "    model_info:`n      context_window: 200000`n      max_context_window: 200000"
   $hfInfo = "    model_info:`n      context_window: 262144`n      max_context_window: 262144"
 
   $yaml = @"
-# LiteLLM proxy — pont API Responses (Codex) -> chat/completions (DeepSeek/NVIDIA/HF)
+# LiteLLM proxy - pont API Responses (Codex) -> chat/completions (DeepSeek/Kimi/NVIDIA/HF)
 # GENERE AUTOMATIQUEMENT par codex-launch.ps1 a chaque lancement — ne pas editer a la main.
 model_list:
   - model_name: deepseek-flash
@@ -243,6 +251,24 @@ $dsInfo
       reasoning_effort: high
       extra_body: {"thinking": {"type": "enabled"}}
 $dsInfo
+
+  - model_name: kimi-k2.6
+    litellm_params:
+      model: moonshot/kimi-k2.6
+      api_base: https://api.moonshot.ai/v1
+      api_key: os.environ/MOONSHOT_API_KEY
+      use_chat_completions_api: true
+      extra_body: {"thinking": {"type": "enabled"}}
+$kimiK26Info
+
+  - model_name: kimi-k3
+    litellm_params:
+      model: moonshot/kimi-k3
+      api_base: https://api.moonshot.ai/v1
+      api_key: os.environ/MOONSHOT_API_KEY
+      use_chat_completions_api: true
+      reasoning_effort: max
+$kimiK3Info
 
   - model_name: nvidia-deepseek
     litellm_params:
@@ -331,7 +357,9 @@ function Launch-App([string]$model, [string]$provider, [bool]$needProxy, [bool]$
   if ($needProxy) {
     Update-LiteLLMConfig $model   # menu = source de verite : wildcard pointe sur ce provider
     Stop-Proxy                    # force LiteLLM a recharger la nouvelle config
-    Ensure-Proxy
+    # GATE (2026-07-12) : proxy pas pret = on NE lance PAS l'app (sinon timeouts garantis).
+    # L'ancienne app reste ouverte plutot que d'etre tuee pour rien.
+    if (-not (Ensure-Proxy)) { return }
   }
   Close-CodexApp   # l'app ne lit CODEX_HOME qu'au demarrage — on ferme l'instance ouverte
   Write-Host "[go] demarrage de l'application Codex (GRATUIT) sur '$model'..." -ForegroundColor Cyan
@@ -341,23 +369,30 @@ function Launch-App([string]$model, [string]$provider, [bool]$needProxy, [bool]$
 Write-Host ""
 Write-Host "  ===== LANCEUR CODEX =====" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "   1) DeepSeek-V4-flash      rapide, pas cher          [MCP OK]  <- recommande"
-Write-Host "   2) DeepSeek-V4-pro        plus fort (ton compte)   [MCP OK]"
-Write-Host "   3) NVIDIA DeepSeek-V4-pro instable cote NVIDIA      [MCP OK]"
-Write-Host "   4) NVIDIA GLM-5.1         gratuit, rapide          [MCP OK]"
-Write-Host "   5) HuggingFace Qwen3.6    gratuit                  [MCP OK]"
-Write-Host "   6) Mon compte OpenAI      gpt-5.5 (home ~/.codex)   [compte, MCP OK]"
-Write-Host "   7) Ollama cloud           minimax (ollama signin)  [cloud]"
+Write-Host "   1) DeepSeek-V4-flash      rapide, pas cher          [outils]  <- recommande"
+Write-Host "   2) DeepSeek-V4-pro        plus fort (ton compte)   [outils]"
+Write-Host "   3) Kimi K2.6              256k, multimodal         [outils]"
+Write-Host "   4) Kimi K3                1M, flagship             [outils]"
+Write-Host "   5) NVIDIA DeepSeek-V4-pro CASSE via LiteLLM (400) [audit 2026-07-13]" -ForegroundColor DarkGray
+Write-Host "   6) NVIDIA GLM-5.1         MORT - EOL 02/07 (410)  [audit 2026-07-13]" -ForegroundColor DarkGray
+Write-Host "   7) HuggingFace Qwen3.6    gratuit                  [outils]"
+Write-Host "   8) Mon compte OpenAI      gpt-5.5 (home ~/.codex)   [compte]"
+Write-Host "   9) Ollama cloud           minimax (ollama signin)  [cloud, lent/absent]" -ForegroundColor DarkGray
 Write-Host ""
-$c = Read-Host "  Ton choix (1-7)"
+$c = Read-Host "  Ton choix (1-9)"
 
+# withMcp=$false pour le gratuit (2026-07-13) : les MCP externes (supabase/render/figma/playwright)
+# sont OAuth CASSES (AuthRequired) -> hang au demarrage. Strip-MCP les retire, GARDE node_repl
+# (interne, browser/computer-use). Le gratuit DeepSeek/HF n'a pas besoin des MCP externes.
 switch ($c) {
-  '1' { Launch-App "deepseek-flash"   "litellm"                  $true  $true  }
-  '2' { Launch-App "deepseek-v4-pro"  "litellm"                  $true  $true  }
-  '3' { Launch-App "nvidia-deepseek"  "litellm"                  $true  $true  }
-  '4' { Launch-App "nvidia-glm"       "litellm"                  $true  $true  }
-  '5' { Launch-App "hf"               "litellm"                  $true  $true  }
-  '6' { Launch-App "gpt-5.5"          "openai"                   $false $true  }
-  '7' { Launch-App "minimax-m3:cloud" "ollama-launch-codex-app"  $false $true  }
+  '1' { Launch-App "deepseek-flash"   "litellm"                  $true  $false }
+  '2' { Launch-App "deepseek-v4-pro"  "litellm"                  $true  $false }
+  '3' { Launch-App "kimi-k2.6"        "litellm"                  $true  $false }
+  '4' { Launch-App "kimi-k3"          "litellm"                  $true  $false }
+  '5' { Write-Host "[!] NVIDIA DeepSeek casse via LiteLLM (client_metadata refuse, HTTP 400 - audit 2026-07-13). Modele vivant en direct mais pas via ce proxy. Choisis 1/2/3/4/7." -ForegroundColor Red }
+  '6' { Write-Host "[!] NVIDIA GLM-5.1 mort : EOL cote NVIDIA le 02/07/2026 (HTTP 410 - audit 2026-07-13). Choisis 1/2/3/4/7." -ForegroundColor Red }
+  '7' { Launch-App "hf"               "litellm"                  $true  $false }
+  '8' { Launch-App "gpt-5.5"          "openai"                   $false $true  }
+  '9' { Launch-App "minimax-m3:cloud" "ollama-launch-codex-app"  $false $true  }
   default { Write-Host "Choix invalide. Relance le lanceur." -ForegroundColor Red }
 }

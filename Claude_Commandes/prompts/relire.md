@@ -1,4 +1,4 @@
-Tu es un relecteur de code senior. Fais une revue de code RIGOUREUSE des changements git de ce dépôt. Tu tournes sur le provider actuellement actif (HF / DeepSeek / NVIDIA) — pas besoin d'OpenAI.
+Tu es un relecteur de code senior. Fais une revue de code RIGOUREUSE des changements git de ce dépôt. Tu tournes sur le provider actuellement actif (HF / DeepSeek / Kimi / NVIDIA) - pas besoin d'OpenAI.
 
 CIBLE À RELIRE :
 - Si un argument est fourni ($ARGUMENTS), traite-le comme une référence de base et compare la branche : `git diff $ARGUMENTS...HEAD` (+ `git log --oneline $ARGUMENTS..HEAD`).

@@ -1,6 +1,6 @@
-# Claude_Commandes — Pont gratuit Claude Code ↔ Codex (DeepSeek / HF / NVIDIA)
+# Claude_Commandes - Pont gratuit Claude Code ↔ Codex (DeepSeek / Kimi / HF / NVIDIA)
 
-Des slash-commandes **dans Claude Code** qui font faire le travail (review de code, tâche d'agent) par **Codex tournant sur un provider GRATUIT** (DeepSeek via proxy LiteLLM, HuggingFace, NVIDIA) — **sans utiliser ton compte OpenAI**.
+Des slash-commandes **dans Claude Code** qui font faire le travail (review de code, tâche d'agent) par **Codex tournant sur un provider GRATUIT** (DeepSeek/Kimi via proxy LiteLLM, HuggingFace, NVIDIA) - **sans utiliser ton compte OpenAI**.
 
 > Pourquoi : `/codex:review` natif n'utilise QUE le reviewer OpenAI (compte payant). Ces commandes lancent à la place `codex exec` forcé sur un provider gratuit, via le proxy LiteLLM local (port 4000).
 
@@ -13,7 +13,7 @@ Des slash-commandes **dans Claude Code** qui font faire le travail (review de co
 | `/cx-free-task [provider] [--write] <demande>` | N'importe quelle demande à l'agent Codex (`--write` = autorise modif de fichiers). |
 | `/cx-free-status` | État du proxy LiteLLM (port 4000) + providers disponibles. |
 
-**Providers** : `deepseek` (défaut), `deepseek-pro`, `hf`, `nvidia`, `glm`.
+**Providers** : `deepseek` (défaut), `deepseek-pro`, `kimi-k2.6`, `kimi-k3`, `hf`, `nvidia`, `glm`.
 **Cible review** : sans `base-ref` → travail non commité ; avec `base-ref` (ex. `main`) → branche vs base.
 
 ### Exemples
@@ -22,7 +22,7 @@ Des slash-commandes **dans Claude Code** qui font faire le travail (review de co
 /cx-free-review deepseek            → review du travail non commité par DeepSeek
 /cx-free-review hf main             → review de ta branche vs main par HuggingFace
 /cx-free-task nvidia explique-moi ce que fait ce module
-/cx-free-critique deepseek-pro      → revue adversariale par DeepSeek V4 Pro
+/cx-free-critique kimi-k3            → revue adversariale par Kimi K3
 /cx-free-status                     → proxy up/down + modèles servis
 ```
 
@@ -53,7 +53,7 @@ Redémarre Claude Code après installation pour voir les commandes.
 2. lance `codex exec -c model_provider=litellm -m <modèle> --sandbox <ro|write> -o <fichier>` → l'agent Codex tourne sur le provider gratuit choisi (via le proxy) ;
 3. renvoie le rapport final propre (le bruit MCP/skills est filtré).
 
-> Ça n'attache pas à la fenêtre de l'app Codex ouverte : ça lance un tour `codex exec` headless sur le même provider gratuit. Le résultat (DeepSeek/HF/NVIDIA fait l'analyse) est identique.
+> Ça n'attache pas à la fenêtre de l'app Codex ouverte : ça lance un tour `codex exec` headless sur le même provider gratuit. Le résultat (DeepSeek/Kimi/HF/NVIDIA fait l'analyse) est identique.
 
 ## Dépannage
 

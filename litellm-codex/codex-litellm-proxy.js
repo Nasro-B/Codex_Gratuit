@@ -14,7 +14,11 @@ const server = http.createServer((req, res) => {
     headers: { ...req.headers, host: '127.0.0.1:' + LITELLM_PORT }
   };
 
-  if (req.url === '/v1/models') {
+  // Normalise le chemin : retire la query string (?foo) et le slash final (2026-07-13, audit).
+  // L'egalite stricte req.url === '/v1/models' ratait /v1/models?x et /v1/models/ ->
+  // Codex recevait alors le schema brut {data:[...]} et echouait sur "missing field models".
+  const pathname = req.url.split('?')[0].replace(/\/+$/, '');
+  if (pathname === '/v1/models') {
     const proxy = http.request(options, (proxyRes) => {
       let body = '';
       proxyRes.on('data', chunk => body += chunk);

@@ -2,7 +2,9 @@
 
 ![Codex Banner](assets/codex_banner.png)
 
-**Utilise l'application [OpenAI Codex](https://openai.com/codex/) avec des LLM gratuits ou moins chers** — DeepSeek, NVIDIA NIM, Hugging Face — via un proxy local transparent.
+**Utilise l'application [OpenAI Codex](https://openai.com/codex/) avec des LLM gratuits ou moins chers** - DeepSeek, Kimi, NVIDIA NIM, Hugging Face - via un proxy local transparent.
+
+Kimi est intégré avec les modèles `kimi-k2.6` et `kimi-k3`, accessibles depuis les choix 3 et 4 du launcher.
 
 L'app Codex est un IDE IA puissant (terminal, navigateur, éditeur de fichiers, MCP, plugins), mais elle nécessite un abonnement OpenAI payant. **Codex Gratuit** te permet d'utiliser cette même application avec tes propres clés API gratuites ou low-cost, sans modifier l'app elle-même.
 
@@ -46,6 +48,7 @@ litellm --version
 | Fournisseur | Lien | Coût |
 |------------|------|------|
 | **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/) | ~0.14$/M tokens (flash) |
+| **Kimi / Moonshot AI** | [platform.kimi.ai](https://platform.kimi.ai/) | Selon le modèle et le compte |
 | **NVIDIA NIM** | [build.nvidia.com](https://build.nvidia.com/) | Gratuit (1000 crédits offerts) |
 | **Hugging Face** | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) | Gratuit (Inference API) |
 
@@ -82,15 +85,17 @@ Le menu interactif s'affiche :
 ```
   ===== LANCEUR CODEX =====
 
-   1) DeepSeek-V4-flash      rapide, pas cher          [MCP OK]  <- recommandé
-   2) DeepSeek-V4-pro        plus fort (ton compte)    [MCP OK]
-   3) NVIDIA DeepSeek-V4-pro instable côté NVIDIA      [MCP OK]
-   4) NVIDIA GLM-5.1         gratuit, rapide           [MCP OK]
-   5) HuggingFace Qwen3.6    gratuit                   [MCP OK]
-   6) Mon compte OpenAI      gpt-5-codex               [compte, MCP OK]
-   7) Ollama cloud           minimax (ollama signin)   [cloud, MCP OK]
+   1) DeepSeek-V4-flash      rapide, pas cher          [outils]  <- recommande
+   2) DeepSeek-V4-pro        plus fort (ton compte)    [outils]
+   3) Kimi K2.6              256k, multimodal         [outils]
+   4) Kimi K3                1M, flagship             [outils]
+   5) NVIDIA DeepSeek-V4-pro indisponible via proxy    [desactive]
+   6) NVIDIA GLM-5.1         EOL                       [desactive]
+   7) HuggingFace Qwen3.6    gratuit                  [outils]
+   8) Mon compte OpenAI      gpt-5.5                  [compte]
+   9) Ollama cloud           minimax (ollama signin)  [cloud]
 
-  Ton choix (1-7) :
+  Ton choix (1-9) :
 ```
 
 Choisis un numéro → le lanceur :
@@ -106,14 +111,16 @@ Choisis un numéro → le lanceur :
 |---|--------|-------------|-----|-------|-------|
 | 1 | DeepSeek-V4-flash | DeepSeek | ✅ | ✅ | **Recommandé** — rapide et pas cher |
 | 2 | DeepSeek-V4-pro | DeepSeek | ✅ | ✅ | Plus puissant, plus cher |
-| 3 | DeepSeek-V4-pro | NVIDIA NIM | ✅ | ✅ | Gratuit mais instable côté NVIDIA |
-| 4 | GLM-5.1 | NVIDIA NIM | ✅ | ✅ | Gratuit et rapide |
-| 5 | Qwen3-Coder-Next | Hugging Face | ✅ | ✅ | Gratuit (Inference API) |
-| 6 | gpt-5-codex | OpenAI | ✅ | ❌ | Ton abonnement OpenAI |
-| 7 | minimax-m3:cloud | Ollama cloud | ✅ | ❌ | Nécessite `ollama signin` |
+| 3 | Kimi K2.6 | Kimi / Moonshot AI | local | ✅ | Multimodal, thinking, contexte 256k |
+| 4 | Kimi K3 | Kimi / Moonshot AI | local | ✅ | Flagship, raisonnement, contexte 1M |
+| 5 | DeepSeek-V4-pro | NVIDIA NIM | - | ❌ | Désactivé via ce proxy |
+| 6 | GLM-5.1 | NVIDIA NIM | - | ❌ | EOL côté NVIDIA |
+| 7 | Qwen3-Coder-Next | Hugging Face | local | ✅ | Gratuit (Inference API) |
+| 8 | gpt-5-codex | OpenAI | ✅ | ❌ | Ton abonnement OpenAI |
+| 9 | minimax-m3:cloud | Ollama cloud | ✅ | ❌ | Nécessite `ollama signin` |
 
 > **MCP** = Model Context Protocol (serveurs externes comme Supabase, Playwright, Figma…).
-> Le lanceur les active pour tous les modèles (choix 1→7) — les MCP sont gérés par l'application Codex elle-même, pas par le LLM distant.
+> Le serveur interne `node_repl` reste géré par Codex. Les serveurs MCP externes sont coupés pour les providers chat gratuits lorsque leur OAuth bloque le démarrage.
 > `mcp-backup.toml` est un **filet de secours** : restaure-le manuellement si une màj de Codex efface tes serveurs MCP.
 
 ---
@@ -156,7 +163,7 @@ Choisis un numéro → le lanceur :
 └──────────┬──────────┬──────────┬────────────────────────────┘
            │          │          │
            ▼          ▼          ▼
-      DeepSeek    NVIDIA NIM   Hugging Face
+      DeepSeek    Kimi    NVIDIA NIM   Hugging Face
 ```
 
 ### Le mécanisme du Wildcard
@@ -185,7 +192,7 @@ Ce réordonnancement est inoffensif pour NVIDIA/HF et corrige le problème pour 
 
 ### Gestion des serveurs MCP
 
-Les serveurs MCP (Supabase, Playwright, Figma, Render…) sont activés pour **tous** les choix du menu (1→7) — `Launch-App` est appelé avec `withMcp = $true` partout. Concrètement :
+Les serveurs MCP (Supabase, Playwright, Figma, Render…) sont conservés pour OpenAI/Ollama. Pour DeepSeek, Kimi et Hugging Face, le lanceur conserve le serveur interne `node_repl` et coupe les MCP externes lorsque l'API chat ne peut pas les gérer.
 
 - **Tous les choix** : les serveurs MCP sont conservés dans `config.toml` — c'est l'application Codex qui les gère, pas le LLM distant
 - **`mcp-backup.toml`** : sauvegarde manuelle des serveurs MCP externes, filet de secours pour une restauration après màj Codex
@@ -197,7 +204,7 @@ Les serveurs MCP (Supabase, Playwright, Figma, Render…) sont activés pour **t
 
 ## 🔗 Bonus 1 — Piloter Codex gratuit depuis Claude Code (`Claude_Commandes/`)
 
-Le dossier [`Claude_Commandes/`](Claude_Commandes/) ajoute des **slash-commandes dans Claude Code** qui font exécuter la review/tâche par **Codex tournant sur un provider gratuit** (DeepSeek/HF/NVIDIA via le même proxy LiteLLM `:4000`) — **sans utiliser ton compte OpenAI**.
+Le dossier [`Claude_Commandes/`](Claude_Commandes/) ajoute des **slash-commandes dans Claude Code** qui font exécuter la review/tâche par **Codex tournant sur un provider gratuit** (DeepSeek/Kimi/HF/NVIDIA via le même proxy LiteLLM `:4000`) - **sans utiliser ton compte OpenAI**.
 
 > Pourquoi : `/codex:review` natif n'utilise QUE le reviewer OpenAI (payant). Ces commandes lancent à la place `codex exec` forcé sur le provider gratuit choisi.
 
@@ -208,7 +215,7 @@ Le dossier [`Claude_Commandes/`](Claude_Commandes/) ajoute des **slash-commandes
 | `/cx-free-task [provider] [--write] <demande>` | Toute demande à l'agent (`--write` = autorise l'écriture de fichiers) |
 | `/cx-free-status` | État du proxy LiteLLM (port 4000) + modèles servis |
 
-**Providers** : `deepseek` (défaut), `deepseek-pro`, `hf`, `nvidia`, `glm`. **Cible review** : sans `base-ref` → travail non commité ; avec `base-ref` (ex. `main`) → branche vs base.
+**Providers** : `deepseek` (défaut), `deepseek-pro`, `kimi-k2.6`, `kimi-k3`, `hf`, `nvidia`, `glm`. **Cible review** : sans `base-ref` → travail non commité ; avec `base-ref` (ex. `main`) → branche vs base.
 
 Installation :
 
@@ -283,6 +290,9 @@ Copie `.env.example` vers `.env` et remplis tes clés :
 # DeepSeek (https://platform.deepseek.com/)
 DEEPSEEK_API_KEY=[REMOVED_API_KEY]
 
+# Kimi / Moonshot AI (https://platform.kimi.ai/)
+MOONSHOT_API_KEY=[REMOVED_API_KEY]
+
 # NVIDIA Build (https://build.nvidia.com/) — 1 clé par modèle
 NVIDIA_API_KEY_DEEPSEEK=[REMOVED_API_KEY]
 NVIDIA_API_KEY_GLM=[REMOVED_API_KEY]
@@ -300,7 +310,7 @@ HF_TOKEN=[REMOVED_API_KEY]
    'mon-modele' { $wcModel = 'provider/nom-du-modele'; $wcBase = 'https://api.example.com'; $wcKey = 'MA_CLE_API' }
    ```
 
-3. Ajoute le slug correspondant dans `ollama-launch-models.json` (voir [ollama-launch-models.json.md](ollama-launch-models.json.md))
+3. Ajoute le slug correspondant dans `litellm-models.json`
 4. Ajoute une option dans le menu et le `switch` final
 
 ### Serveurs MCP personnalisés
@@ -325,7 +335,7 @@ Une mise à jour de l'application Codex peut **écraser** `config.toml` et `olla
 Si le contexte retombe à **65 536 tokens** au lieu de 1M/256k :
 
 - Vérifie `C:\Users\<user>\.codex\ollama-launch-models.json`
-- Les slugs `deepseek-flash`, `deepseek-v4-pro`, `nvidia-deepseek`, `nvidia-glm`, `hf` doivent exister avec le bon `context_window` (1M / 1M / 1M / 200k / 256k)
+- Les slugs `deepseek-flash`, `deepseek-v4-pro`, `kimi-k2.6`, `kimi-k3`, `nvidia-deepseek`, `nvidia-glm`, `hf` doivent exister avec le bon `context_window` (1M / 1M / 256k / 1M / 1M / 200k / 256k)
 - Référence : [ollama-launch-models.json.md](ollama-launch-models.json.md)
 
 ### 2. Fournisseur LiteLLM
@@ -361,11 +371,13 @@ Les noms de modèles valides (qui doivent matcher le `model_list` de `config.yam
 |------------|---------------|------------------|
 | 1 | `deepseek-flash` | `litellm` |
 | 2 | `deepseek-v4-pro` | `litellm` |
-| 3 | `nvidia-deepseek` | `litellm` |
-| 4 | `nvidia-glm` | `litellm` |
-| 5 | `hf` | `litellm` |
-| 6 | `gpt-5.5` | `openai` |
-| 7 | `minimax-m3:cloud` | `ollama-launch-codex-app` |
+| 3 | `kimi-k2.6` | `litellm` |
+| 4 | `kimi-k3` | `litellm` |
+| 5 | `nvidia-deepseek` | `litellm` |
+| 6 | `nvidia-glm` | `litellm` |
+| 7 | `hf` | `litellm` |
+| 8 | `gpt-5.5` | `openai` |
+| 9 | `minimax-m3:cloud` | `ollama-launch-codex-app` |
 
 ### 4. Serveurs MCP
 
