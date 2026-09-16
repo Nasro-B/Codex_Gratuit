@@ -13,7 +13,7 @@ L'app Codex est un IDE IA puissant (terminal, navigateur, éditeur de fichiers, 
 ## 📋 Prérequis
 
 > ⚠️ **IMPORTANT** : Tu dois d'abord installer l'application Codex et connecter ton compte OpenAI.
-> Le lanceur ne remplace pas Codex — il redirige ses requêtes vers d'autres backends.
+> Le lanceur ne remplace pas Codex - il redirige ses requêtes vers d'autres backends.
 
 ### 1. Installer l'application Codex
 
@@ -108,36 +108,36 @@ Choisis un numéro → le lanceur :
 
 ### Lanceur isolé `codex-home`
 
-Le clone installé avec l'identité Windows `Nasro.Codex.Free` se lance avec :
+Le clone personnel installé avec l'identité Windows `Nasro.Codex.Free` se lance avec :
 
 ```powershell
-pwsh -File "C:\Serveurs\Codex Gratuit\codex-home.ps1"
+pwsh -File "G:\Serveurs\Codex-Free-Clone\codex-home.ps1"
 ```
 
-Ce lanceur demande directement le modèle à utiliser, utilise le home `C:\Users\<user>\.codex-openai`, démarre son proxy sur `4100` et `4101`, puis démarre uniquement le clone. Le Codex original reste sur `C:\Users\<user>\.codex` et aucun processus Codex n'est fermé.
+Ce lanceur utilise le home personnel `C:\Users\<user>\.codex-home`, le runtime `G:\Serveurs\Codex-Free-Clone\runtime` et les ports `4100` et `4101`, puis démarre uniquement le clone. Le sélecteur de modèles de Codex reçoit directement les modèles Kimi, DeepSeek et Mina. Le Codex Gratuit du projet GitHub reste sur `C:\Users\<user>\.codex-openai` et les ports `4000` et `4001`. Le Codex original reste sur `C:\Users\<user>\.codex`.
 
-Le menu isolé propose :
+Le lanceur démarre sur `deepseek-flash` sans imposer de menu. Le changement de modèle se fait dans le sélecteur Codex, sans redémarrer l'application :
 
 | Choix | Modèle | Contexte |
 |---|---|---:|
-| 1 | Kimi K2.6 | 256k |
-| 2 | Kimi K2.7 Code | 256k |
-| 3 | Kimi K2.7 Code HighSpeed | 256k |
-| 4 | Kimi K3 | 1M |
-| 5 | DeepSeek V4 Pro | 1M |
-| 6 | DeepSeek V4 Flash, alias V4.1 Flash | 1M |
-| 7 | DeepSeek V4.1 Flash | 1M |
-| 8 | Mina Flash, CloudZIR | 64k |
-| 9 | Mina Low, CloudZIR | 128k |
-| 10 | Mina Full, CloudZIR | 256k |
+| - | Kimi K2.6 | 256k |
+| - | Kimi K2.7 Code | 256k |
+| - | Kimi K2.7 Code HighSpeed | 256k |
+| - | Kimi K3 | 1M |
+| - | DeepSeek V4 Pro | 1M |
+| - | DeepSeek V4 Flash, identifiant legacy | 1M |
+| - | DeepSeek V4.1 Flash | 1M |
+| - | Mina Flash, CloudZIR | 64k |
+| - | Mina Low, CloudZIR | 128k |
+| - | Mina Full, CloudZIR | 256k |
 
-Les clés restent dans `litellm-codex/.env`, ignoré par Git. Le launcher n'écrit jamais les clés dans `config.toml`, dans le catalogue ou dans le paquet.
+Les clés du Codex Gratuit restent dans `C:\Serveurs\Codex Gratuit\litellm-codex\.env`. Les clés du Codex Home personnel restent dans `G:\Serveurs\Codex-Free-Clone\runtime\.env`. Ces fichiers sont séparés et ne doivent jamais être commités. Aucun lanceur n'écrit une clé dans `config.toml`, dans le catalogue ou dans le paquet.
 
 ### Modèles disponibles
 
 | # | Modèle | Fournisseur | MCP | Proxy | Notes |
 |---|--------|-------------|-----|-------|-------|
-| 1 | DeepSeek-V4-flash | DeepSeek | ✅ | ✅ | **Recommandé** — rapide et pas cher |
+| 1 | DeepSeek-V4-flash | DeepSeek | ✅ | ✅ | **Recommandé** - rapide et pas cher |
 | 2 | DeepSeek-V4-pro | DeepSeek | ✅ | ✅ | Plus puissant, plus cher |
 | 3 | Kimi K2.6 | Kimi / Moonshot AI | local | ✅ | Multimodal, thinking, contexte 256k |
 | 4 | Kimi K3 | Kimi / Moonshot AI | local | ✅ | Flagship, raisonnement, contexte 1M |
@@ -166,7 +166,7 @@ Les clés restent dans `litellm-codex/.env`, ignoré par Git. Le launcher n'écr
                        │ http://127.0.0.1:4001/v1/
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│           Pont Node (:4001) — codex-litellm-proxy.js         │
+│           Pont Node (:4001) - codex-litellm-proxy.js         │
 │   Corrige GET /v1/models : {"data":[...]} → {"models":[...]} │
 │   (format attendu par Codex) puis forwarde tout vers :4000   │
 └──────────────────────┬──────────────────────────────────────┘
@@ -198,7 +198,7 @@ Les clés restent dans `litellm-codex/.env`, ignoré par Git. Le launcher n'écr
 
 L'app Codex envoie ses requêtes avec des noms de modèles OpenAI (ex: `gpt-5.5`, `gpt-5-codex`). Le proxy LiteLLM utilise un **catch-all wildcard `"*"`** qui intercepte **n'importe quel** nom de modèle et le redirige vers le backend choisi dans le menu.
 
-Ainsi, peu importe ce que l'app affiche comme modèle — c'est le **menu du lanceur** qui décide quel backend reçoit les requêtes.
+Ainsi, peu importe ce que l'app affiche comme modèle - c'est le **menu du lanceur** qui décide quel backend reçoit les requêtes.
 
 ### Le fix DeepSeek
 
@@ -222,7 +222,7 @@ Ce réordonnancement est inoffensif pour NVIDIA/HF et corrige le problème pour 
 
 Les serveurs MCP (Supabase, Playwright, Figma, Render…) sont conservés pour OpenAI/Ollama. Pour DeepSeek, Kimi et Hugging Face, le lanceur conserve le serveur interne `node_repl` et coupe les MCP externes lorsque l'API chat ne peut pas les gérer.
 
-- **Tous les choix** : les serveurs MCP sont conservés dans `config.toml` — c'est l'application Codex qui les gère, pas le LLM distant
+- **Tous les choix** : les serveurs MCP sont conservés dans `config.toml` - c'est l'application Codex qui les gère, pas le LLM distant
 - **`mcp-backup.toml`** : sauvegarde manuelle des serveurs MCP externes, filet de secours pour une restauration après màj Codex
 - Le serveur interne `node_repl` (utilisé par Codex pour son navigateur intégré) n'est **jamais touché**
 
@@ -230,9 +230,9 @@ Les serveurs MCP (Supabase, Playwright, Figma, Render…) sont conservés pour O
 
 ---
 
-## 🔗 Bonus 1 — Piloter Codex gratuit depuis Claude Code (`Claude_Commandes/`)
+## 🔗 Bonus 1 - Piloter Codex gratuit depuis Claude Code (`Claude_Commandes/`)
 
-Le dossier [`Claude_Commandes/`](Claude_Commandes/) ajoute des **slash-commandes dans Claude Code** qui font exécuter la review/tâche par **Codex tournant sur un provider gratuit** (DeepSeek/Kimi/HF/NVIDIA via le même proxy LiteLLM `:4000`) - **sans utiliser ton compte OpenAI**.
+Le dossier [`Claude_Commandes/`](Claude_Commandes/) ajoute des **slash-commandes dans Claude Code** qui font exécuter la review/tâche par **Codex Home tournant sur un provider gratuit** (DeepSeek/Kimi/Mina via le runtime personnel LiteLLM `:4100`) - **sans utiliser ton compte OpenAI**.
 
 > Pourquoi : `/codex:review` natif n'utilise QUE le reviewer OpenAI (payant). Ces commandes lancent à la place `codex exec` forcé sur le provider gratuit choisi.
 
@@ -241,27 +241,28 @@ Le dossier [`Claude_Commandes/`](Claude_Commandes/) ajoute des **slash-commandes
 | `/cx-free-review [provider] [base-ref]` | Revue de code (équivalent gratuit de `/codex:review`) |
 | `/cx-free-critique [provider] [base-ref]` | Revue **adversariale** red-team |
 | `/cx-free-task [provider] [--write] <demande>` | Toute demande à l'agent (`--write` = autorise l'écriture de fichiers) |
-| `/cx-free-status` | État du proxy LiteLLM (port 4000) + modèles servis |
+| `/cx-free-status` | État du proxy LiteLLM personnel (ports 4100/4101) + modèles servis |
 
-**Providers** : `deepseek` (défaut), `deepseek-pro`, `kimi-k2.6`, `kimi-k3`, `hf`, `nvidia`, `glm`. **Cible review** : sans `base-ref` → travail non commité ; avec `base-ref` (ex. `main`) → branche vs base.
+**Providers** : `deepseek-flash` (défaut), `deepseek-v4-pro`, `deepseek-v4-flash`, `kimi-k2.6`, `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`, `kimi-k3`, `mina-flash`, `mina-low`, `mina-full`. **Cible review** : sans `base-ref` → travail non commité ; avec `base-ref` (ex. `main`) → branche vs base.
 
 Installation :
 
 ```powershell
-pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1"
+$env:CODEX_HOME_APP_ROOT = 'G:\Serveurs\Codex-Free-Clone'
+pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1" -HomeRoot $env:CODEX_HOME_APP_ROOT
 ```
 
-L'installeur copie les commandes vers `~/.claude/commands/`, le moteur `cx-free.ps1` vers `~/.claude/scripts/`, et — bonus — les prompts `/relire` + `/relire-critique` vers `~/.codex/prompts/` (utilisables directement dans l'app Codex). Détails et dépannage : [Claude_Commandes/README.md](Claude_Commandes/README.md).
+L'installeur copie les commandes vers `~/.claude/commands/`, le moteur `cx-free.ps1` vers `~/.claude/scripts/`, et les prompts vers `~/.codex-home/prompts/`. Avec `-ImportAssets`, il importe aussi les plugins, compétences, agents et définitions de connecteurs non sensibles depuis `.codex` et `.claude` vers `.codex-openai`, sans copier les jetons. Détails et dépannage : [Claude_Commandes/README.md](Claude_Commandes/README.md).
 
-> ⚠️ `codex exec` exige `model_reasoning_effort = "xhigh"` dans `~/.codex/config.toml` — la valeur `"max"` a été supprimée depuis codex-cli 0.118.0.
+> ⚠️ `codex exec` exige `model_reasoning_effort = "xhigh"` dans `~/.codex-home/config.toml` pour les commandes `/cx-free-*` - la valeur `"max"` a été supprimée depuis codex-cli 0.118.0.
 
 ---
 
-## 🤖 Bonus 2 — Équipe de 15 sous-agents Codex (`user/.codex/agents/`)
+## 🤖 Bonus 2 - Agents Codex et import des assets
 
-Le dossier [`user/.codex/agents/`](user/.codex/agents/) contient **15 sous-agents spécialisés** pour Codex CLI (multi-agents), taillés pour une stack Node/Express + React/Vike + Supabase/Postgres + Vercel + LLM : `codebase-explorer`, `code-reviewer`, `security-auditor`, `debugger`, `test-engineer`, `db-migration-reviewer`, `performance-optimizer`, `refactorer`, `ai-llm-engineer`, `frontend-ux-reviewer`, `deployment-release-engineer`, `backend-api-reviewer`, `compliance-rgpd-auditor`, `integration-resilience-reviewer`, `docs-changelog-maintainer`.
+Le script `scripts/import-codex-assets.ps1` importe dans `~/.codex-openai/` les plugins, compétences et agents non sensibles de `~/.codex/` et `~/.claude/`, sans écraser un asset existant ni créer de doublon. Les agents Markdown Claude compatibles sont convertis en TOML Codex lorsque leur nom n'existe pas déjà.
 
-Chaque agent déclare un `sandbox_mode` (`read-only` pour les relecteurs/auditeurs, `workspace-write` pour les 4 « doers » : debugger, test-engineer, refactorer, docs-changelog-maintainer). Copie les `*.toml` dans `~/.codex/agents/` et active `multi_agent = true` sous `[features]` dans `config.toml`. Détails : [user/.codex/agents/README.md](user/.codex/agents/README.md).
+Les définitions MCP sont importées sans headers, tokens ou credentials. Les connecteurs OAuth doivent être reconnectés dans le home cible. Les prompts `cx-free-*` sont installés séparément dans `~/.codex-home/prompts/` et Claude continue d'utiliser `~/.claude/commands/`.
 
 ---
 
@@ -273,16 +274,17 @@ C:\Serveurs\Codex Gratuit\
 ├── mcp-backup.toml           # Sauvegarde des serveurs MCP externes (filet manuel)
 ├── Codex (menu).lnk          # Raccourci Windows (double-clic pour lancer)
 ├── .gitignore                # Sécurisation Git (exclut .env, config.yaml, secrets)
+├── scripts/import-codex-assets.ps1 # Import idempotent sans credentials
 ├── config.toml.md            # Doc : structure de ~/.codex/config.toml (sans secrets)
 ├── ollama-launch-models.json.md  # Doc : structure de ollama-launch-models.json (sans secrets)
 │
 ├── litellm-codex/            # Stack proxy (pont Node 4001 + LiteLLM 4000)
 │   ├── start-litellm.ps1     # Démarre la stack : valide .env, lance le pont 4001 puis litellm 4000
 │   ├── codex-litellm-proxy.js # Pont Node :4001 → :4000 (fix /v1/models pour Codex)
-│   ├── config.yaml           # Config LiteLLM (GÉNÉRÉ AUTO par codex-launch.ps1 — ne pas éditer)
+│   ├── config.yaml           # Config LiteLLM (GÉNÉRÉ AUTO par codex-launch.ps1 - ne pas éditer)
 │   ├── codex_deepseek_fix.py # Callback : réordonne les tool_calls pour DeepSeek
 │   ├── litellm-models.json   # Catalogue léger exposé à Codex (context_window réels)
-│   ├── .env                  # 🔒 Clés API — copie CANONIQUE unique (NE JAMAIS COMMITTER)
+│   ├── .env                  # 🔒 Clés API - copie CANONIQUE unique (NE JAMAIS COMMITTER)
 │   └── .env.example          # Template sans secrets
 │
 ├── Claude_Commandes/         # Pont Claude Code → Codex gratuit (slash-commandes /cx-free-*)
@@ -293,7 +295,7 @@ C:\Serveurs\Codex Gratuit\
 │   ├── scripts/cx-free.ps1   # Le moteur (lance codex exec sur le provider gratuit)
 │   └── prompts/              # Bonus : /relire et /relire-critique DANS l'app Codex
 │
-└── user/.codex/agents/       # 15 sous-agents Codex (*.toml) — équipe de relecture/audit
+└── user/.codex/agents/       # 15 sous-agents Codex (*.toml) - équipe de relecture/audit
     └── README.md             # Doc de l'équipe d'agents
 ```
 
@@ -301,7 +303,7 @@ C:\Serveurs\Codex Gratuit\
 
 | Fichier | Emplacement | Rôle |
 |---------|-------------|------|
-| `config.toml` | `C:\Users\<user>\.codex\config.toml` | Config principale Codex — modifié par le lanceur |
+| `config.toml` | `C:\Users\<user>\.codex\config.toml` | Config principale Codex - modifié par le lanceur |
 | `ollama-launch-models.json` | `C:\Users\<user>\.codex\ollama-launch-models.json` | Catalogue des modèles et leurs context_window |
 
 > 📚 **Documentation détaillée** : voir `config.toml.md` et `ollama-launch-models.json.md` dans ce projet.
@@ -321,7 +323,7 @@ DEEPSEEK_API_KEY=replace-with-your-deepseek-api-key
 # Kimi / Moonshot AI (https://platform.kimi.ai/)
 MOONSHOT_API_KEY=replace-with-your-moonshot-api-key
 
-# NVIDIA Build (https://build.nvidia.com/) — 1 clé par modèle
+# NVIDIA Build (https://build.nvidia.com/) - 1 clé par modèle
 NVIDIA_API_KEY_DEEPSEEK=replace-with-your-nvidia-deepseek-key
 NVIDIA_API_KEY_GLM=replace-with-your-nvidia-glm-key
 
@@ -379,9 +381,9 @@ env_key = "LITELLM_KEY"
 model_catalog_json = 'C:\Serveurs\Codex Gratuit\litellm-codex\litellm-models.json'
 ```
 
-> ⚠️ `base_url` pointe sur **4001** (le pont Node), pas 4000 (LiteLLM) — sans le pont, l'app
+> ⚠️ `base_url` pointe sur **4001** (le pont Node), pas 4000 (LiteLLM) - sans le pont, l'app
 > reçoit `{"data":[...]}` sur `/v1/models` et ignore les modèles. Le lanceur réécrit
-> `model_catalog_json` (chaîne littérale TOML à quotes **simples** — des quotes doubles sans
+> `model_catalog_json` (chaîne littérale TOML à quotes **simples** - des quotes doubles sans
 > `\\` échappés rendraient le TOML invalide et Codex ne verrait plus le provider).
 
 ### 3. Modèle actif (écrit par le lanceur)
@@ -439,8 +441,8 @@ pwsh -File "C:\Serveurs\Codex Gratuit\litellm-codex\start-litellm.ps1"
 ```
 
 > `start-litellm.ps1` refuse de démarrer si une clé référencée par `config.yaml` est absente
-> de `.env` (message `[!] cles manquantes ou vides`) — remplis la clé et relance.
-> ⚠️ Toujours lancer via **pwsh 7** (les raccourcis le font) — jamais `powershell.exe` 5.1,
+> de `.env` (message `[!] cles manquantes ou vides`) - remplis la clé et relance.
+> ⚠️ Toujours lancer via **pwsh 7** (les raccourcis le font) - jamais `powershell.exe` 5.1,
 > qui écrirait un BOM UTF-8 dans `config.toml` à la prochaine réécriture.
 
 ### L'app Codex ne répond pas avec DeepSeek
@@ -476,19 +478,19 @@ model_reasoning_effort = "xhigh"   # et non "max"
 
 ## 🔒 Sécurité
 
-- Le fichier `.env` contient tes clés API — il est exclu de Git via `.gitignore`
+- Le fichier `.env` contient tes clés API - il est exclu de Git via `.gitignore`
 - **Copie canonique unique** : `C:\Serveurs\Codex Gratuit\litellm-codex\.env`. Les copies des
   anciens dossiers (`Codex Free`, `Codex_Gratuit-codex-evaluer-le-projet`) ont été supprimées
   le 2026-07-02 ; leurs raccourcis pointent désormais sur ce repo.
-- Audit historique git (2026-07-02) : scan des 3 repos (`sk-…`, `nvapi-…`, `hf_…`) — aucun
+- Audit historique git (2026-07-02) : scan des 3 repos (`sk-…`, `nvapi-…`, `hf_…`) - aucun
   `.env` réel jamais commité, placeholders uniquement. Aucune purge nécessaire.
-- La stack tourne en **local uniquement** (`127.0.0.1:4000` + `127.0.0.1:4001`) — pas accessible depuis l'extérieur
+- La stack tourne en **local uniquement** (`127.0.0.1:4000` + `127.0.0.1:4001`) - pas accessible depuis l'extérieur
 - La `master_key` du proxy (`sk-codex-local`) est uniquement pour l'accès local
 
-> **Ne committe jamais `.env`** — utilise `.env.example` comme template pour les autres utilisateurs.
+> **Ne committe jamais `.env`** - utilise `.env.example` comme template pour les autres utilisateurs.
 
 ---
 
 ## 📜 Licence
 
-Projet personnel. L'application OpenAI Codex appartient à OpenAI. Ce projet ne modifie pas l'application — il redirige ses requêtes API via un proxy local.
+Projet personnel. L'application OpenAI Codex appartient à OpenAI. Ce projet ne modifie pas l'application - il redirige ses requêtes API via un proxy local.

@@ -18,4 +18,4 @@ Marche a suivre :
 
 3. Restitue le plan final et distingue les faits constates, les hypotheses, les fichiers concernes, les tests et les criteres d acceptation.
 
-Le helper reste en lecture seule, utilise .codex-openai et ne lance pas la fenetre graphique Codex.
+Le helper reste en lecture seule, utilise le home personnel .codex-home et ne lance pas la fenetre graphique Codex.

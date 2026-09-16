@@ -1,5 +1,5 @@
 # Pont Claude Code vers Codex Home headless.
-# Toutes les executions utilisent le home dedie .codex-openai et le proxy 4100/4101.
+# Toutes les executions utilisent le home personnel Codex Home .codex-home et le proxy 4100/4101.
 [CmdletBinding()]
 param(
   [ValidateSet('review', 'critique', 'task', 'agent', 'plan', 'status', 'models', 'health')]
@@ -10,14 +10,21 @@ param(
   [string]$Prompt = '',
   [switch]$Write,
   [string]$Repo = (Get-Location).Path,
-  [string]$Root = 'C:\Serveurs\Codex Gratuit'
+  [string]$Root = 'C:\Serveurs\Codex Gratuit',
+  [string]$HomeRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
-$freeHome = Join-Path $env:USERPROFILE '.codex-openai'
-$homeLauncher = Join-Path $Root 'codex-home.ps1'
+$HomeRoot = if ([string]::IsNullOrWhiteSpace($HomeRoot)) {
+  $configuredHomeRoot = if ([string]::IsNullOrWhiteSpace($env:CODEX_HOME_APP_ROOT)) { [Environment]::GetEnvironmentVariable('CODEX_HOME_APP_ROOT', 'User') } else { $env:CODEX_HOME_APP_ROOT }
+  if ([string]::IsNullOrWhiteSpace($configuredHomeRoot)) { throw 'CODEX_HOME_APP_ROOT is required. Set it to the personal Codex Home directory.' } else { $configuredHomeRoot }
+} else {
+  $HomeRoot
+}
+$freeHome = Join-Path $env:USERPROFILE '.codex-home'
+$homeLauncher = Join-Path $HomeRoot 'codex-home.ps1'
 $configPath = Join-Path $freeHome 'config.toml'
-$catalogPath = Join-Path $Root 'litellm-codex\litellm-models.json'
+$catalogPath = Join-Path $HomeRoot 'runtime\litellm-models.json'
 $bridgeModelsUri = 'http://127.0.0.1:4101/v1/models'
 
 $targetModels = [ordered]@{
@@ -136,7 +143,7 @@ function Test-Health() {
     Bridge4101 = if (Test-PortUp 4101) { 'UP' } else { 'DOWN' }
     SelectedModel = $resolvedModel
     SelectedModelVisible = ($ids -contains $resolvedModel)
-    ModelCount = $ids.Count
+    ModelCount = @($ids | Where-Object { $_ -ne '*' }).Count
   } | Format-List
 }
 

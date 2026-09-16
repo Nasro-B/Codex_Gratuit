@@ -3,7 +3,7 @@ description: Envoie une tache a Codex Home avec un modele DeepSeek, Kimi ou Mina
 argument-hint: "[modele] [--write] <demande>"
 allowed-tools: Bash(pwsh:*), Read, Glob, Grep
 ---
-Envoie une demande a Codex Home en mode headless, avec le home dedie .codex-openai.
+Envoie une demande a Codex Home en mode headless, avec le home personnel dedie .codex-home.
 
 Arguments bruts : $ARGUMENTS
 
@@ -31,6 +31,6 @@ Marche a suivre :
 
        pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode task -Model "<modele>" -Repo "<cwd>" [-Write] -Prompt "<demande>"
 
-   Le helper configure .codex-openai, appelle le lanceur racine codex-home.ps1 -Headless et utilise le pont 4101 vers LiteLLM 4100. Il ne lance pas la fenetre graphique Codex.
+   Le helper configure .codex-home, appelle le lanceur personnel codex-home.ps1 -Headless et utilise le pont 4101 vers LiteLLM 4100. Il ne lance pas la fenetre graphique Codex et ne touche pas au runtime Codex Gratuit.
 4. Restitue le rapport final affiche apres le titre RAPPORT CODEX-HOME.
 5. En cas d erreur, restitue le message exact et indique si le blocage vient du CLI, des dependances, des variables de l environnement ou des ports 4100/4101.

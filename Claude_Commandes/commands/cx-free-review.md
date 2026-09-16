@@ -30,6 +30,6 @@ Marche a suivre :
 
        pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode review -Model "<modele>" -Repo "<cwd>" [-Base "<base-ref>"]
 
-   Le helper fixe CODEX_HOME uniquement dans son processus vers .codex-openai, prepare le proxy 4100/4101 et n ouvre jamais l application graphique.
+   Le helper fixe CODEX_HOME uniquement dans son processus vers le home personnel .codex-home, prepare le proxy 4100/4101 et n ouvre jamais l application graphique.
 4. Restitue le rapport final affiche apres le titre RAPPORT CODEX-HOME. N ajoute pas une seconde relecture.
 5. Un modele hors de cette liste doit etre signale comme indisponible dans Codex Home.

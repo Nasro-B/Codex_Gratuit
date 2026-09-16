@@ -19,4 +19,4 @@ Marche a suivre :
 3. Restitue le compte rendu final affiche apres le titre RAPPORT CODEX-HOME.
 4. Pour plusieurs agents, lance plusieurs invocations avec des missions distinctes. Evite plusieurs agents en ecriture dans le meme depot ou les memes fichiers ; utilise des worktrees separes pour le travail parallele.
 
-Chaque invocation utilise .codex-openai, le proxy dedie 4100/4101 et le lanceur codex-home.ps1 -Headless. Elle ne lance pas la fenetre graphique Codex et ne touche pas au home original .codex.
+Chaque invocation utilise le home personnel .codex-home, le runtime Codex Home sous CODEX_HOME_APP_ROOT, le proxy dedie 4100/4101 et le lanceur codex-home.ps1 -Headless. Elle ne lance pas la fenetre graphique Codex et ne touche ni au home Codex Gratuit .codex-openai ni au home original .codex.

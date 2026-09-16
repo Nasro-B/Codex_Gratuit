@@ -1,6 +1,6 @@
 # Claude_Commandes - Pont Claude vers Codex Home
 
-Ces commandes slash font executer une revue, une tache ou un plan par Codex CLI en utilisant exclusivement le home dedie .codex-openai et le proxy Codex Home. Le home original .codex n est ni lu ni modifie par ce raccordement.
+Ces commandes slash font executer une revue, une tache ou un plan par Codex CLI en utilisant exclusivement le runtime personnel Codex Home, son home .codex-home et son proxy 4100/4101. Le runtime du projet Codex Gratuit (.codex-openai et 4000/4001) ainsi que le home original .codex ne sont ni lus ni modifies par ce raccordement.
 
 ## Commandes
 
@@ -53,36 +53,44 @@ Le chemin d execution est :
 
     Claude /cx-free-* -> ~/.claude/scripts/cx-free.ps1
                          -> codex-home.ps1 -Headless
-                         -> CODEX_HOME=.codex-openai
+                         -> CODEX_HOME=.codex-home
+                         -> CODEX_HOME_APP_ROOT=G:\Serveurs\Codex-Free-Clone
                          -> pont 127.0.0.1:4101
                          -> LiteLLM 127.0.0.1:4100
                          -> fournisseur selectionne
 
 /cx-free-agent est le mode explicite pour deleguer une mission complete a un agent Codex. Il reprend les memes controles que /cx-free-task : lecture seule par defaut et ecriture uniquement avec --write. Plusieurs agents peuvent etre lances par plusieurs invocations, mais les agents en ecriture doivent travailler dans des worktrees distincts.
 
-La variable CODEX_HOME est definie uniquement dans le processus du helper et ses enfants. L application graphique Codex n est jamais lancee par les commandes Claude. Le lanceur graphique codex-home.ps1 reste disponible separement pour ouvrir le clone.
+Les variables CODEX_HOME et CODEX_HOME_APP_ROOT sont utilisees uniquement pour le processus du helper et ses enfants. L application graphique Codex n est jamais lancee par les commandes Claude. Le lanceur graphique codex-home.ps1 reste disponible separement pour ouvrir le clone.
 
-Les ports 4100 et 4101 sont dedies a Codex Home. Le proxy historique 4000 et le home .codex original restent hors de ce flux. Le proxy Codex Home doit etre idempotent : une nouvelle commande cx-free ne doit pas arreter un proxy Codex Home deja actif.
+Les ports 4100 et 4101 sont dedies au runtime personnel Codex Home. Le proxy Codex Gratuit 4000/4001 et le home .codex-openai restent hors de ce flux. Le proxy Codex Home doit etre idempotent : une nouvelle commande cx-free ne doit pas arreter un proxy Codex Home deja actif.
 
 ## Installation
 
-    pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1"
+    $env:CODEX_HOME_APP_ROOT = 'G:\Serveurs\Codex-Free-Clone'
+    pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1" -HomeRoot $env:CODEX_HOME_APP_ROOT
+
+Pour importer aussi les plugins, competences, agents et definitions de connecteurs non sensibles :
+
+    pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1" -HomeRoot $env:CODEX_HOME_APP_ROOT -ImportAssets
 
 L installeur copie :
 
 - commands/*.md vers ~/.claude/commands/
 - scripts/cx-free.ps1 vers ~/.claude/scripts/
-- prompts/*.md vers ~/.codex-openai/prompts/
+- prompts/*.md et les commandes cx-free-* vers ~/.codex-home/prompts/
+- les assets non sensibles de .codex et .claude vers ~/.codex-openai/
 
-L installeur ne modifie pas ~/.codex. Recharge Claude Code apres installation pour afficher les nouvelles commandes.
+L importeur ignore les auth.json, credentials.json, cookies, sessions, historiques, tokens et cles API. Les connecteurs OAuth doivent etre reconnectes dans l environnement cible. L installeur ne modifie pas ~/.codex. Recharge Claude Code apres installation pour afficher les nouvelles commandes.
 
 ## Prerequis
 
 - Codex CLI disponible dans le PATH.
 - Node.js et LiteLLM disponibles dans le PATH.
-- C:\Serveurs\Codex Gratuit\codex-home.ps1 present.
-- ~/.codex-openai/config.toml present.
-- Les variables fournisseurs sont conservees dans C:\Serveurs\Codex Gratuit\litellm-codex\.env, qui ne doit jamais etre commite.
+- G:\Serveurs\Codex-Free-Clone\codex-home.ps1 present.
+- G:\Serveurs\Codex-Free-Clone\runtime\codex-home-proxy.ps1 present.
+- ~/.codex-home/config.toml present.
+- Les variables fournisseurs du runtime personnel sont conservees dans G:\Serveurs\Codex-Free-Clone\runtime\.env, qui ne doit jamais etre commite.
 - Les dependances et les variables doivent etre presentes avant le premier /cx-free-health, /cx-free-review, /cx-free-critique, /cx-free-plan, /cx-free-task ou /cx-free-agent.
 
 ## Verification rapide
@@ -96,7 +104,7 @@ L installeur ne modifie pas ~/.codex. Recharge Claude Code apres installation po
 ## Depannage
 
 - Si le status indique DOWN, c est normal tant qu aucune commande qui necessite le proxy n a ete lancee.
-- Si health echoue, verifier Node.js, LiteLLM, le fichier .env, le fichier ~/.codex-openai/config.toml et la disponibilite des ports 4100 et 4101.
+- Si health echoue, verifier Node.js, LiteLLM, le fichier .env, le fichier ~/.codex-home/config.toml et la disponibilite des ports 4100 et 4101.
 - Un port occupe par un autre programme est refuse explicitement. Le script ne tue pas un processus dont la ligne de commande ne correspond pas a ce projet.
 - Les erreurs d un appel LLM restent distinctes du test health : health verifie le branchement local et la visibilite du modele, pas la validite distante de chaque fournisseur.
 

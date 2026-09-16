@@ -10,7 +10,7 @@ Lance :
 
 Restitue la sortie, notamment :
 
-- le chemin .codex-openai utilise par les commandes cx-free ;
+- le chemin .codex-home utilise par les commandes cx-free ;
 - l etat du proxy LiteLLM 4100 et du pont API 4101 ;
 - la liste des modeles Codex Home.
 

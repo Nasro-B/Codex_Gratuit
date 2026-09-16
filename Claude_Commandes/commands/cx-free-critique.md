@@ -30,5 +30,5 @@ Marche a suivre :
 
        pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode critique -Model "<modele>" -Repo "<cwd>" [-Base "<base-ref>"]
 
-   Le helper travaille uniquement avec .codex-openai et les ports dedies 4100/4101. Il ne lance pas la fenetre graphique Codex.
+   Le helper travaille uniquement avec le home personnel .codex-home et les ports dedies 4100/4101. Il ne lance pas la fenetre graphique Codex.
 4. Restitue verbatim le rapport affiche apres le titre RAPPORT CODEX-HOME, sans ajouter ta propre analyse.
