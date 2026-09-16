@@ -4,7 +4,7 @@
 
 **Utilise l'application [OpenAI Codex](https://openai.com/codex/) avec des LLM gratuits ou moins chers** - DeepSeek, Kimi, NVIDIA NIM, Hugging Face - via un proxy local transparent.
 
-Kimi est intégré avec les modèles `kimi-k2.6` et `kimi-k3`, accessibles depuis les choix 3 et 4 du launcher.
+Kimi est intégré avec les modèles `kimi-k2.6`, `kimi-k2.7-code`, `kimi-k2.7-code-highspeed` et `kimi-k3`.
 
 L'app Codex est un IDE IA puissant (terminal, navigateur, éditeur de fichiers, MCP, plugins), mais elle nécessite un abonnement OpenAI payant. **Codex Gratuit** te permet d'utiliser cette même application avec tes propres clés API gratuites ou low-cost, sans modifier l'app elle-même.
 
@@ -49,6 +49,7 @@ litellm --version
 |------------|------|------|
 | **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/) | ~0.14$/M tokens (flash) |
 | **Kimi / Moonshot AI** | [platform.kimi.ai](https://platform.kimi.ai/) | Selon le modèle et le compte |
+| **CloudZIR** | [api.cloudzir.com](https://api.cloudzir.com/) | Selon le modèle et le compte |
 | **NVIDIA NIM** | [build.nvidia.com](https://build.nvidia.com/) | Gratuit (1000 crédits offerts) |
 | **Hugging Face** | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) | Gratuit (Inference API) |
 
@@ -104,6 +105,33 @@ Choisis un numéro → le lanceur :
 2. Conserve les serveurs MCP activés (backup automatique dans `mcp-backup.toml`)
 3. Démarre le proxy LiteLLM si nécessaire
 4. Lance l'application Codex
+
+### Lanceur isolé `codex-home`
+
+Le clone installé avec l'identité Windows `Nasro.Codex.Free` se lance avec :
+
+```powershell
+pwsh -File "C:\Serveurs\Codex Gratuit\codex-home.ps1"
+```
+
+Ce lanceur demande directement le modèle à utiliser, utilise le home `C:\Users\<user>\.codex-openai`, démarre son proxy sur `4100` et `4101`, puis démarre uniquement le clone. Le Codex original reste sur `C:\Users\<user>\.codex` et aucun processus Codex n'est fermé.
+
+Le menu isolé propose :
+
+| Choix | Modèle | Contexte |
+|---|---|---:|
+| 1 | Kimi K2.6 | 256k |
+| 2 | Kimi K2.7 Code | 256k |
+| 3 | Kimi K2.7 Code HighSpeed | 256k |
+| 4 | Kimi K3 | 1M |
+| 5 | DeepSeek V4 Pro | 1M |
+| 6 | DeepSeek V4 Flash, alias V4.1 Flash | 1M |
+| 7 | DeepSeek V4.1 Flash | 1M |
+| 8 | Mina Flash, CloudZIR | 64k |
+| 9 | Mina Low, CloudZIR | 128k |
+| 10 | Mina Full, CloudZIR | 256k |
+
+Les clés restent dans `litellm-codex/.env`, ignoré par Git. Le launcher n'écrit jamais les clés dans `config.toml`, dans le catalogue ou dans le paquet.
 
 ### Modèles disponibles
 
