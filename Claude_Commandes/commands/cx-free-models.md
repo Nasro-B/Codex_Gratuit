@@ -9,4 +9,3 @@ Lance :
        pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode models
 
 Cette commande est en lecture seule. Elle lit litellm-models.json et ne demarre ni LiteLLM, ni le pont API, ni l application graphique Codex.
-

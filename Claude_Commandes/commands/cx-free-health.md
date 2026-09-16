@@ -12,4 +12,3 @@ Lance :
        pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode health -Model "<modele>"
 
 Le test peut demarrer uniquement les processus headless du proxy LiteLLM 4100 et du pont 4101, puis verifie /v1/models. Il ne lance pas l application graphique Codex et ne touche pas au home original .codex.
-
