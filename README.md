@@ -316,17 +316,17 @@ Copie `.env.example` vers `.env` et remplis tes clés :
 
 ```env
 # DeepSeek (https://platform.deepseek.com/)
-DEEPSEEK_API_KEY=[REMOVED_API_KEY]
+DEEPSEEK_API_KEY=replace-with-your-deepseek-api-key
 
 # Kimi / Moonshot AI (https://platform.kimi.ai/)
-MOONSHOT_API_KEY=[REMOVED_API_KEY]
+MOONSHOT_API_KEY=replace-with-your-moonshot-api-key
 
 # NVIDIA Build (https://build.nvidia.com/) — 1 clé par modèle
-NVIDIA_API_KEY_DEEPSEEK=[REMOVED_API_KEY]
-NVIDIA_API_KEY_GLM=[REMOVED_API_KEY]
+NVIDIA_API_KEY_DEEPSEEK=replace-with-your-nvidia-deepseek-key
+NVIDIA_API_KEY_GLM=replace-with-your-nvidia-glm-key
 
 # Hugging Face (https://huggingface.co/settings/tokens)
-HF_TOKEN=[REMOVED_API_KEY]
+HF_TOKEN=replace-with-your-huggingface-token
 ```
 
 ### Ajouter un nouveau modèle
