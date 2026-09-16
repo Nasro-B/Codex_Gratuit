@@ -82,7 +82,7 @@
 
 - [x] Confirm no `.env`, key, token or generated personal config is tracked.
 - [x] Confirm no unrelated files changed.
-- [ ] Report commit and push separately unless explicitly requested.
+- [x] Report commit and push separately after the secret-safe commit and remote verification.
 
 ### Task 5: Import non-secret Codex and Claude assets
 
