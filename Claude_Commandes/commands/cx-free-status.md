@@ -1,13 +1,17 @@
 ---
-description: État du pont gratuit Codex - proxy LiteLLM (port 4000) + providers disponibles
+description: Etat de Codex Home, de son home dedie et de ses ports
 allowed-tools: Bash(pwsh:*)
 ---
-Affiche l'état du pont gratuit (proxy LiteLLM + providers cx-free), sans rien lancer d'autre.
+Affiche l etat du raccordement Claude vers Codex Home, sans demarrer de proxy et sans lancer d application.
 
-Marche à suivre :
-1. Lance :
-   ```
-   pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode status
-   ```
-2. Restitue la sortie : proxy UP/DOWN sur 4000, modèles servis par le proxy, et la liste des providers utilisables (`deepseek`, `deepseek-pro`, `kimi-k2.6`, `kimi-k3`, `hf`, `nvidia`, `glm`).
-3. Si le proxy est DOWN, rappelle qu'il démarre automatiquement au prochain `/cx-free-review`, `/cx-free-critique` ou `/cx-free-task`.
+Lance :
+
+       pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode status
+
+Restitue la sortie, notamment :
+
+- le chemin .codex-openai utilise par les commandes cx-free ;
+- l etat du proxy LiteLLM 4100 et du pont API 4101 ;
+- la liste des modeles Codex Home.
+
+Le home original .codex et le proxy historique 4000 ne sont pas utilises par cette commande.

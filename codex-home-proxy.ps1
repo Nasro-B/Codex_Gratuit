@@ -83,6 +83,23 @@ function Stop-CloneProxy {
   throw 'The previous Codex Home proxy did not stop cleanly.'
 }
 
+function Test-CloneProxyReady {
+  if (-not (Test-PortUp $litellmPort) -or -not (Test-PortUp $bridgePort)) {
+    return $false
+  }
+
+  $owners = @(Get-PortOwners $litellmPort) + @(Get-PortOwners $bridgePort)
+  if ($owners.Count -eq 0) {
+    throw 'Codex Home ports are open but their owners could not be identified.'
+  }
+  foreach ($owner in $owners) {
+    if ([string]::IsNullOrWhiteSpace($owner.CommandLine) -or $owner.CommandLine.IndexOf($repositoryRoot, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+      throw "Port $($owner.Port) is already used by another process. The clone was not started."
+    }
+  }
+  return $true
+}
+
 if (-not (Test-Path -LiteralPath $environmentFile)) {
   throw "Environment file not found: $environmentFile"
 }
@@ -235,27 +252,44 @@ litellm_settings:
 "@
 Set-Content -LiteralPath $configPath -Value $yaml -Encoding utf8
 
-Stop-CloneProxy
+$startupMutex = [Threading.Mutex]::new($false, 'CodexHomeProxyStartup')
+$lockAcquired = $false
+try {
+  try {
+    $lockAcquired = $startupMutex.WaitOne(120000)
+  } catch [Threading.AbandonedMutexException] {
+    $lockAcquired = $true
+  }
+  if (-not $lockAcquired) { throw 'Timed out while another Codex Home proxy was starting.' }
 
-$node = Get-Command node -ErrorAction SilentlyContinue
-$litellm = Get-Command litellm -ErrorAction SilentlyContinue
-if (-not $node) { throw 'Node.js is required for the Codex Home bridge.' }
-if (-not $litellm) { throw 'LiteLLM is required for the Codex Home proxy.' }
+  $proxyAlreadyReady = Test-CloneProxyReady
+  if (-not $proxyAlreadyReady) {
+    Stop-CloneProxy
 
-$nodePath = if ($node.Source) { $node.Source } else { $node.Path }
-$litellmPath = if ($litellm.Source) { $litellm.Source } else { $litellm.Path }
+    $node = Get-Command node -ErrorAction SilentlyContinue
+    $litellm = Get-Command litellm -ErrorAction SilentlyContinue
+    if (-not $node) { throw 'Node.js is required for the Codex Home bridge.' }
+    if (-not $litellm) { throw 'LiteLLM is required for the Codex Home proxy.' }
 
-$litellmArguments = @('--config', "`"$configPath`"", '--host', '127.0.0.1', '--port', "$litellmPort")
-Start-Process -FilePath $litellmPath -ArgumentList $litellmArguments -WorkingDirectory $proxyDirectory -WindowStyle Hidden | Out-Null
-for ($attempt = 0; $attempt -lt 240; $attempt++) {
-  if (Test-PortUp $litellmPort) { break }
-  Start-Sleep -Milliseconds 500
+    $nodePath = if ($node.Source) { $node.Source } else { $node.Path }
+    $litellmPath = if ($litellm.Source) { $litellm.Source } else { $litellm.Path }
+
+    $litellmArguments = @('--config', "`"$configPath`"", '--host', '127.0.0.1', '--port', "$litellmPort")
+    Start-Process -FilePath $litellmPath -ArgumentList $litellmArguments -WorkingDirectory $proxyDirectory -WindowStyle Hidden | Out-Null
+    for ($attempt = 0; $attempt -lt 240; $attempt++) {
+      if (Test-PortUp $litellmPort) { break }
+      Start-Sleep -Milliseconds 500
+    }
+    if (-not (Test-PortUp $litellmPort)) { throw 'LiteLLM did not start on port 4100 after 120 seconds.' }
+
+    Start-Process -FilePath $nodePath -ArgumentList @('"' + $bridgePath + '"') -WorkingDirectory $repositoryRoot -WindowStyle Hidden | Out-Null
+    for ($attempt = 0; $attempt -lt 20; $attempt++) {
+      if (Test-PortUp $bridgePort) { break }
+      Start-Sleep -Milliseconds 500
+    }
+    if (-not (Test-PortUp $bridgePort)) { throw 'The Codex Home bridge did not start on port 4101.' }
+  }
+} finally {
+  if ($lockAcquired) { $startupMutex.ReleaseMutex() }
+  $startupMutex.Dispose()
 }
-if (-not (Test-PortUp $litellmPort)) { throw 'LiteLLM did not start on port 4100 after 120 seconds.' }
-
-Start-Process -FilePath $nodePath -ArgumentList @("`"$bridgePath`"") -WorkingDirectory $repositoryRoot -WindowStyle Hidden | Out-Null
-for ($attempt = 0; $attempt -lt 20; $attempt++) {
-  if (Test-PortUp $bridgePort) { break }
-  Start-Sleep -Milliseconds 500
-}
-if (-not (Test-PortUp $bridgePort)) { throw 'The Codex Home bridge did not start on port 4101.' }

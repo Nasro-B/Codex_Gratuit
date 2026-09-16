@@ -1,19 +1,34 @@
 ---
-description: Review ADVERSARIALE (red team) par l'agent Codex sur un provider GRATUIT (DeepSeek/Kimi/HF/NVIDIA)
-argument-hint: "[deepseek|deepseek-pro|kimi-k2.6|kimi-k3|hf|nvidia|glm] [base-ref]"
+description: Revue adversariale read-only par Codex Home
+argument-hint: "[modele] [base-ref]"
 allowed-tools: Bash(pwsh:*), Read, Glob, Grep
 ---
-Review ADVERSARIALE (cherche activement le pire bug caché, avec scénario de repro) par l'agent Codex sur un provider GRATUIT — équivalent libre de `/codex:adversarial-review`.
+Fais executer une revue adversariale des changements par Codex Home, en cherchant les regressions et les scenarii d exploitation reels.
 
-Arguments bruts : `$ARGUMENTS`
+Arguments bruts : $ARGUMENTS
 
-Marche à suivre :
-1. Parse `$ARGUMENTS` :
-   - 1er token = **provider** (`deepseek` défaut, `deepseek-pro`, `kimi-k2.6`, `kimi-k3`, `hf`, `nvidia`, `glm`).
-   - 2e token optionnel = **référence git de base** (ex: `main`).
-2. Lance :
-   ```
-   pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode critique -Provider <provider> -Repo "<cwd>" [-Base <base>]
-   ```
-   Le helper allume le proxy 4000 si besoin. C'est long (≈30 s–2 min) ; propose `run_in_background` si gros diff.
-3. Restitue **verbatim** la section après `===== RAPPORT CODEX` (analyse faite par DeepSeek/Kimi/HF/NVIDIA). N'ajoute pas ta propre analyse.
+Le modele par defaut est deepseek-flash, qui correspond a DeepSeek V4.1 Flash. Modeles acceptes :
+
+- kimi-k2.6
+- kimi-k2.7-code
+- kimi-k2.7-code-highspeed
+- kimi-k3
+- deepseek-v4-pro
+- deepseek-v4-flash
+- deepseek-flash
+- mina-flash
+- mina-low
+- mina-full
+
+Aliases : deepseek, ds, deepseek-pro, kimi, kimi-2.6 et deepseek-v4.1-flash.
+
+Marche a suivre :
+
+1. Si le premier token est un modele ou un alias, utilise-le. Sinon utilise deepseek-flash et traite ce token comme la reference git de base.
+2. Le second token est une reference git optionnelle, par exemple main. Sans reference, cible le travail non commite.
+3. Lance :
+
+       pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode critique -Model "<modele>" -Repo "<cwd>" [-Base "<base-ref>"]
+
+   Le helper travaille uniquement avec .codex-openai et les ports dedies 4100/4101. Il ne lance pas la fenetre graphique Codex.
+4. Restitue verbatim le rapport affiche apres le titre RAPPORT CODEX-HOME, sans ajouter ta propre analyse.

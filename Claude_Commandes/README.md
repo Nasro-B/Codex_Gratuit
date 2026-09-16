@@ -1,82 +1,122 @@
-# Claude_Commandes - Pont gratuit Claude Code ↔ Codex (DeepSeek / Kimi / HF / NVIDIA)
+# Claude_Commandes - Pont Claude vers Codex Home
 
-Des slash-commandes **dans Claude Code** qui font faire le travail (review de code, tâche d'agent) par **Codex tournant sur un provider GRATUIT** (DeepSeek/Kimi via proxy LiteLLM, HuggingFace, NVIDIA) - **sans utiliser ton compte OpenAI**.
+Ces commandes slash font executer une revue, une tache ou un plan par Codex CLI en utilisant exclusivement le home dedie .codex-openai et le proxy Codex Home. Le home original .codex n est ni lu ni modifie par ce raccordement.
 
-> Pourquoi : `/codex:review` natif n'utilise QUE le reviewer OpenAI (compte payant). Ces commandes lancent à la place `codex exec` forcé sur un provider gratuit, via le proxy LiteLLM local (port 4000).
+## Commandes
 
-## Commandes disponibles
-
-| Commande | Rôle |
+| Commande | Usage |
 | --- | --- |
-| `/cx-free-review [provider] [base-ref]` | Revue de code (équivalent gratuit de `/codex:review`). |
-| `/cx-free-critique [provider] [base-ref]` | Revue **adversariale** red-team (équivalent de `/codex:adversarial-review`). |
-| `/cx-free-task [provider] [--write] <demande>` | N'importe quelle demande à l'agent Codex (`--write` = autorise modif de fichiers). |
-| `/cx-free-status` | État du proxy LiteLLM (port 4000) + providers disponibles. |
+| /cx-free-review [modele] [base-ref] | Revue de code en lecture seule. |
+| /cx-free-critique [modele] [base-ref] | Revue adversariale en lecture seule. |
+| /cx-free-task [modele] [--write] demande | Tache libre. --write autorise l ecriture dans le depot. |
+| /cx-free-agent [modele] [--write] mission | Lance un agent Codex delegue depuis Claude. |
+| /cx-free-plan [modele] demande | Plan d implementation en lecture seule. |
+| /cx-free-models | Catalogue des modeles et fenetres de contexte. |
+| /cx-free-health [modele] | Test du proxy et du pont headless, sans appel LLM. |
+| /cx-free-status | Etat local, sans demarrage de processus. |
 
-**Providers** : `deepseek` (défaut), `deepseek-pro`, `kimi-k2.6`, `kimi-k3`, `hf`, `nvidia`, `glm`.
-**Cible review** : sans `base-ref` → travail non commité ; avec `base-ref` (ex. `main`) → branche vs base.
+## Modeles Codex Home
 
-### Exemples
+Les fenetres ci-dessous sont celles du catalogue utilise par Codex Home :
 
-```
-/cx-free-review deepseek            → review du travail non commité par DeepSeek
-/cx-free-review hf main             → review de ta branche vs main par HuggingFace
-/cx-free-task nvidia explique-moi ce que fait ce module
-/cx-free-critique kimi-k3            → revue adversariale par Kimi K3
-/cx-free-status                     → proxy up/down + modèles servis
-```
+| Identifiant | Libelle | Fenetre de contexte |
+| --- | --- | ---: |
+| kimi-k2.6 | Kimi K2.6 | 262144 tokens |
+| kimi-k2.7-code | Kimi K2.7 Code | 262144 tokens |
+| kimi-k2.7-code-highspeed | Kimi K2.7 Code HighSpeed | 262144 tokens |
+| kimi-k3 | Kimi K3 | 1048576 tokens |
+| deepseek-v4-pro | DeepSeek V4 Pro | 1048576 tokens |
+| deepseek-v4-flash | DeepSeek V4 Flash, identifiant legacy | 1048576 tokens |
+| deepseek-flash | DeepSeek V4.1 Flash | 1048576 tokens |
+| mina-flash | Mina Flash, CloudZIR | 64000 tokens |
+| mina-low | Mina Low, CloudZIR | 128000 tokens |
+| mina-full | Mina Full, CloudZIR | 256000 tokens |
 
-## Installation / réintégration
+Aliases de compatibilite : deepseek, ds, deepseek-pro, kimi, kimi-2.6 et deepseek-v4.1-flash. Les routes historiques hf, nvidia et glm ne sont plus utilisees par /cx-free.
 
-```powershell
-pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1"
-```
+## Exemples
 
-L'installeur copie :
-- `commands\*.md` → `~/.claude/commands/`  (slash-commandes `/cx-free-*`)
-- `scripts\cx-free.ps1` → `~/.claude/scripts/`  (le moteur)
-- `prompts\*.md` → `~/.codex/prompts/`  (bonus : `/relire` et `/relire-critique` **dans l'app Codex** elle-même)
+    /cx-free-review
+    /cx-free-review kimi-k2.7-code main
+    /cx-free-critique deepseek-v4-pro
+    /cx-free-task mina-flash explique ce module
+    /cx-free-task kimi-k2.7-code-highspeed --write implemente la correction demandee
+    /cx-free-agent kimi-k2.7-code analyse ce depot et corrige le bug indique
+    /cx-free-plan deepseek-v4-pro prepare la migration
+    /cx-free-models
+    /cx-free-health mina-full
+    /cx-free-status
 
-Redémarre Claude Code après installation pour voir les commandes.
+## Architecture d isolation
 
-## Prérequis
+Le chemin d execution est :
 
-- **Codex CLI** (`codex`) installé et connecté (login OpenAI sert juste de garde ; les appels LLM partent sur le provider gratuit).
-- **litellm** installé (`uv tool install litellm`).
-- Le **proxy LiteLLM** du projet `C:\Serveurs\Codex Gratuit\litellm-codex` (clés dans son `.env`). Le helper le démarre tout seul sur le port 4000 si éteint.
-- `~/.codex/config.toml` : `model_reasoning_effort` doit valoir `"xhigh"` (PAS `"max"`, supprimé depuis codex-cli 0.118.0, sinon `codex exec` refuse la config).
+    Claude /cx-free-* -> ~/.claude/scripts/cx-free.ps1
+                         -> codex-home.ps1 -Headless
+                         -> CODEX_HOME=.codex-openai
+                         -> pont 127.0.0.1:4101
+                         -> LiteLLM 127.0.0.1:4100
+                         -> fournisseur selectionne
 
-## Fonctionnement (sous le capot)
+/cx-free-agent est le mode explicite pour deleguer une mission complete a un agent Codex. Il reprend les memes controles que /cx-free-task : lecture seule par defaut et ecriture uniquement avec --write. Plusieurs agents peuvent etre lances par plusieurs invocations, mais les agents en ecriture doivent travailler dans des worktrees distincts.
 
-`/cx-free-*` → `cx-free.ps1` qui :
-1. s'assure que le proxy LiteLLM (port 4000) tourne (le démarre sinon) ;
-2. lance `codex exec -c model_provider=litellm -m <modèle> --sandbox <ro|write> -o <fichier>` → l'agent Codex tourne sur le provider gratuit choisi (via le proxy) ;
-3. renvoie le rapport final propre (le bruit MCP/skills est filtré).
+La variable CODEX_HOME est definie uniquement dans le processus du helper et ses enfants. L application graphique Codex n est jamais lancee par les commandes Claude. Le lanceur graphique codex-home.ps1 reste disponible separement pour ouvrir le clone.
 
-> Ça n'attache pas à la fenêtre de l'app Codex ouverte : ça lance un tour `codex exec` headless sur le même provider gratuit. Le résultat (DeepSeek/Kimi/HF/NVIDIA fait l'analyse) est identique.
+Les ports 4100 et 4101 sont dedies a Codex Home. Le proxy historique 4000 et le home .codex original restent hors de ce flux. Le proxy Codex Home doit etre idempotent : une nouvelle commande cx-free ne doit pas arreter un proxy Codex Home deja actif.
 
-## Dépannage
+## Installation
 
-- **`/cx-free-status` dit DOWN** → normal si tu n'as rien lancé ; le 1er `/cx-free-*` démarre le proxy.
-- **« proxy 4000 indisponible »** → vérifier `litellm` installé + les clés dans `C:\Serveurs\Codex Gratuit\litellm-codex\.env`. Test manuel : `pwsh -File "C:\Serveurs\Codex Gratuit\litellm-codex\start-litellm.ps1"`.
-- **`unknown variant 'max'`** → mettre `model_reasoning_effort = "xhigh"` dans `~/.codex/config.toml`.
-- **Erreurs MCP (supabase/render) dans les logs** → sans effet sur le résultat (échec rapide en headless), le rapport final reste propre.
+    pwsh -NoProfile -File "C:\Serveurs\Codex Gratuit\Claude_Commandes\install.ps1"
 
-## Contenu du dossier
+L installeur copie :
 
-```
-Claude_Commandes/
-├── README.md            (ce fichier — technique & dépannage)
-├── PRESENTATION.md      (présentation visuelle des fonctionnalités)
-├── install.ps1          (installe les commandes + helper + prompts)
-├── commands/            (slash-commandes Claude Code)
-│   ├── cx-free-review.md
-│   ├── cx-free-critique.md
-│   ├── cx-free-task.md
-│   └── cx-free-status.md
-├── scripts/
-│   └── cx-free.ps1      (le moteur)
-└── prompts/             (bonus : slash-commandes DANS l'app Codex)
-    ├── relire.md
-    └── relire-critique.md
-```
+- commands/*.md vers ~/.claude/commands/
+- scripts/cx-free.ps1 vers ~/.claude/scripts/
+- prompts/*.md vers ~/.codex-openai/prompts/
+
+L installeur ne modifie pas ~/.codex. Recharge Claude Code apres installation pour afficher les nouvelles commandes.
+
+## Prerequis
+
+- Codex CLI disponible dans le PATH.
+- Node.js et LiteLLM disponibles dans le PATH.
+- C:\Serveurs\Codex Gratuit\codex-home.ps1 present.
+- ~/.codex-openai/config.toml present.
+- Les variables fournisseurs sont conservees dans C:\Serveurs\Codex Gratuit\litellm-codex\.env, qui ne doit jamais etre commite.
+- Les dependances et les variables doivent etre presentes avant le premier /cx-free-health, /cx-free-review, /cx-free-critique, /cx-free-plan, /cx-free-task ou /cx-free-agent.
+
+## Verification rapide
+
+    pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode models
+    pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode status
+    pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode health -Model deepseek-flash
+
+/cx-free-models et /cx-free-status sont sans demarrage. /cx-free-health peut demarrer uniquement le proxy et le pont headless, puis verifie que le modele demande apparait dans /v1/models. Aucun test de completion n est effectue par cette commande.
+
+## Depannage
+
+- Si le status indique DOWN, c est normal tant qu aucune commande qui necessite le proxy n a ete lancee.
+- Si health echoue, verifier Node.js, LiteLLM, le fichier .env, le fichier ~/.codex-openai/config.toml et la disponibilite des ports 4100 et 4101.
+- Un port occupe par un autre programme est refuse explicitement. Le script ne tue pas un processus dont la ligne de commande ne correspond pas a ce projet.
+- Les erreurs d un appel LLM restent distinctes du test health : health verifie le branchement local et la visibilite du modele, pas la validite distante de chaque fournisseur.
+
+## Contenu
+
+    Claude_Commandes/
+    |-- README.md
+    |-- PRESENTATION.md
+    |-- install.ps1
+    |-- commands/
+    |   |-- cx-free-review.md
+    |   |-- cx-free-critique.md
+    |   |-- cx-free-task.md
+    |   |-- cx-free-agent.md
+    |   |-- cx-free-plan.md
+    |   |-- cx-free-models.md
+    |   |-- cx-free-health.md
+    |   |-- cx-free-status.md
+    |-- scripts/
+    |   |-- cx-free.ps1
+    |-- prompts/
+        |-- relire.md
+        |-- relire-critique.md

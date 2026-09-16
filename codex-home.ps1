@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [ValidateSet('kimi-k2.6', 'kimi-k2.7-code', 'kimi-k2.7-code-highspeed', 'kimi-k3', 'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-flash', 'mina-flash', 'mina-low', 'mina-full')]
-  [string]$Model
+  [string]$Model,
+  [switch]$Headless
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +16,9 @@ if (-not (Test-Path -LiteralPath $configPath)) {
 }
 if (-not (Test-Path -LiteralPath $proxyScript)) {
   throw "Codex Home proxy script not found: $proxyScript"
+}
+if ($Headless -and -not $Model) {
+  throw 'Headless mode requires an explicit model.'
 }
 
 $models = @{
@@ -162,6 +166,11 @@ Set-FreeHomeConfig -Path $configPath -ModelName $Model -CatalogPath $catalogPath
 # This value is process-scoped and does not alter the original Codex home.
 $env:CODEX_HOME = $freeHome
 & $proxyScript -WildcardModel $selected.ProviderModel -RequiredEnvKey $selected.RequiredEnvKey
+
+if ($Headless) {
+  Write-Host "[ok] Codex Home prepare pour codex exec sur '$Model'." -ForegroundColor Green
+  exit 0
+}
 
 $package = Get-AppxPackage -Name 'Nasro.Codex.Free' |
   Sort-Object Version -Descending |

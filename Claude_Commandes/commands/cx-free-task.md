@@ -1,22 +1,36 @@
 ---
-description: Demande/tâche à l'agent Codex sur un provider GRATUIT (DeepSeek/Kimi/HF/NVIDIA), sans OpenAI
-argument-hint: "[deepseek|deepseek-pro|kimi-k2.6|kimi-k3|hf|nvidia|glm] [--write] <ta demande>"
+description: Envoie une tache a Codex Home avec un modele DeepSeek, Kimi ou Mina
+argument-hint: "[modele] [--write] <demande>"
 allowed-tools: Bash(pwsh:*), Read, Glob, Grep
 ---
-Envoie n'importe quelle demande à l'agent Codex tournant sur un provider GRATUIT (via le proxy LiteLLM local).
+Envoie une demande a Codex Home en mode headless, avec le home dedie .codex-openai.
 
-Arguments bruts : `$ARGUMENTS`
+Arguments bruts : $ARGUMENTS
 
-Marche à suivre :
-1. Parse `$ARGUMENTS` :
-   - Si le 1er token est l'un de `deepseek`, `deepseek-pro`, `kimi-k2.6`, `kimi-k3`, `hf`, `nvidia`, `glm` - c'est le **provider** ; sinon provider = `deepseek` et tout est la demande.
-   - Flag optionnel `--write` → autorise l'agent à **modifier des fichiers** (sandbox workspace-write). Sans lui, lecture seule.
-   - Le reste = la **demande** (prompt).
-2. Lance le helper (remplace `<provider>`, `<cwd>`, `<demande>`) :
-   ```
-   pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode task -Provider <provider> -Repo "<cwd>" [-Write] -Prompt "<demande>"
-   ```
-   - Le helper allume le proxy 4000 si besoin.
-   - C'est long (≈30 s à 2 min) ; propose `run_in_background` si la demande est lourde.
-3. Restitue **verbatim** la section après `===== RAPPORT CODEX` (la réponse de DeepSeek/Kimi/HF/NVIDIA).
-4. En cas d'erreur (proxy KO, provider inconnu), explique et corrige.
+Modeles disponibles :
+
+- kimi-k2.6
+- kimi-k2.7-code
+- kimi-k2.7-code-highspeed
+- kimi-k3
+- deepseek-v4-pro
+- deepseek-v4-flash
+- deepseek-flash (DeepSeek V4.1 Flash)
+- mina-flash
+- mina-low
+- mina-full
+
+Aliases de compatibilite : deepseek, ds, deepseek-pro, kimi, kimi-2.6 et deepseek-v4.1-flash.
+Les anciens noms hf, nvidia et glm ne sont plus des modeles cx-free.
+
+Marche a suivre :
+
+1. Si le premier token est un modele ou un alias reconnu, utilise-le. Sinon le modele est deepseek-flash et tout l argument reste la demande.
+2. Le flag --write autorise les modifications dans le depot avec le sandbox workspace-write. Sans ce flag, reste en lecture seule.
+3. Lance le helper en remplacant les valeurs entre chevrons :
+
+       pwsh -NoProfile -File "$env:USERPROFILE\.claude\scripts\cx-free.ps1" -Mode task -Model "<modele>" -Repo "<cwd>" [-Write] -Prompt "<demande>"
+
+   Le helper configure .codex-openai, appelle le lanceur racine codex-home.ps1 -Headless et utilise le pont 4101 vers LiteLLM 4100. Il ne lance pas la fenetre graphique Codex.
+4. Restitue le rapport final affiche apres le titre RAPPORT CODEX-HOME.
+5. En cas d erreur, restitue le message exact et indique si le blocage vient du CLI, des dependances, des variables de l environnement ou des ports 4100/4101.

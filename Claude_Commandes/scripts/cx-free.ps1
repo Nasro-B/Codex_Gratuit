@@ -1,132 +1,270 @@
-# cx-free.ps1 - Pont Claude Code -> Codex CLI sur provider GRATUIT (DeepSeek/Kimi/HF/NVIDIA via proxy LiteLLM).
-# Modes : review (revue), critique (revue adversariale), task (demande libre), status (etat proxy/providers).
-# Usage :
-#   pwsh -NoProfile -File cx-free.ps1 -Mode review   -Provider deepseek [-Base main] [-Repo <dir>]
-#   pwsh -NoProfile -File cx-free.ps1 -Mode critique  -Provider hf       [-Base main] [-Repo <dir>]
-#   pwsh -NoProfile -File cx-free.ps1 -Mode task      -Provider nvidia -Prompt "..." [-Write] [-Repo <dir>]
-#   pwsh -NoProfile -File cx-free.ps1 -Mode status
+# Pont Claude Code vers Codex Home headless.
+# Toutes les executions utilisent le home dedie .codex-openai et le proxy 4100/4101.
+[CmdletBinding()]
 param(
-  [ValidateSet('review','critique','task','status')] [string]$Mode = 'review',
-  [string]$Provider = 'deepseek',
+  [ValidateSet('review', 'critique', 'task', 'agent', 'plan', 'status', 'models', 'health')]
+  [string]$Mode = 'review',
+  [Alias('Provider')]
+  [string]$Model = 'deepseek-flash',
   [string]$Base = '',
   [string]$Prompt = '',
   [switch]$Write,
-  [string]$Repo = (Get-Location).Path
+  [string]$Repo = (Get-Location).Path,
+  [string]$Root = 'C:\Serveurs\Codex Gratuit'
 )
+
 $ErrorActionPreference = 'Stop'
-$proxyDir = 'C:\Serveurs\Codex Gratuit\litellm-codex'
-function Test-ProxyUp { [bool](Get-NetTCPConnection -LocalPort 4000 -State Listen -ErrorAction SilentlyContinue) }
+$freeHome = Join-Path $env:USERPROFILE '.codex-openai'
+$homeLauncher = Join-Path $Root 'codex-home.ps1'
+$configPath = Join-Path $freeHome 'config.toml'
+$catalogPath = Join-Path $Root 'litellm-codex\litellm-models.json'
+$bridgeModelsUri = 'http://127.0.0.1:4101/v1/models'
 
-# --- Mode status : etat du proxy + modeles, sans rien lancer ---
-if ($Mode -eq 'status') {
-  $up = Test-ProxyUp
-  Write-Host ("Proxy LiteLLM (port 4000) : " + $(if ($up) { 'UP' } else { 'DOWN (demarre auto au prochain review/critique/task)' }))
-  if ($up) {
-    try {
-      $m = Invoke-RestMethod -Uri 'http://127.0.0.1:4000/v1/models' -Headers @{ Authorization = 'Bearer sk-codex-local' } -TimeoutSec 8
-      Write-Host ("Modeles servis : " + (($m.data | ForEach-Object { $_.id }) -join ', '))
-    } catch { Write-Host "  (/v1/models injoignable : $($_.Exception.Message))" }
+$targetModels = [ordered]@{
+  'kimi-k2.6' = [pscustomobject]@{ Label = 'Kimi K2.6'; Context = 262144 }
+  'kimi-k2.7-code' = [pscustomobject]@{ Label = 'Kimi K2.7 Code'; Context = 262144 }
+  'kimi-k2.7-code-highspeed' = [pscustomobject]@{ Label = 'Kimi K2.7 Code HighSpeed'; Context = 262144 }
+  'kimi-k3' = [pscustomobject]@{ Label = 'Kimi K3'; Context = 1048576 }
+  'deepseek-v4-pro' = [pscustomobject]@{ Label = 'DeepSeek V4 Pro'; Context = 1048576 }
+  'deepseek-v4-flash' = [pscustomobject]@{ Label = 'DeepSeek V4 Flash legacy'; Context = 1048576 }
+  'deepseek-flash' = [pscustomobject]@{ Label = 'DeepSeek V4.1 Flash'; Context = 1048576 }
+  'mina-flash' = [pscustomobject]@{ Label = 'Mina Flash (CloudZIR)'; Context = 64000 }
+  'mina-low' = [pscustomobject]@{ Label = 'Mina Low (CloudZIR)'; Context = 128000 }
+  'mina-full' = [pscustomobject]@{ Label = 'Mina Full (CloudZIR)'; Context = 256000 }
+}
+
+# Compatibilite avec les anciens arguments -Provider.
+$aliases = @{
+  'deepseek' = 'deepseek-flash'
+  'ds' = 'deepseek-flash'
+  'deepseek-pro' = 'deepseek-v4-pro'
+  'kimi' = 'kimi-k2.6'
+  'kimi-2.6' = 'kimi-k2.6'
+  'deepseek-v4.1-flash' = 'deepseek-flash'
+}
+
+$inputModel = $Model.Trim().ToLowerInvariant()
+if ($aliases.ContainsKey($inputModel)) {
+  $inputModel = $aliases[$inputModel]
+}
+if (-not $targetModels.Contains($inputModel)) {
+  throw "Modele '$Model' indisponible dans Codex Home. Utilise /cx-free-models pour la liste."
+}
+$resolvedModel = $inputModel
+
+function Test-PortUp([int]$Port) {
+  $connections = @(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+  return $connections.Count -gt 0
+}
+
+function Format-Context([int]$Value) {
+  if ($Value -ge 1000000) {
+    return ('{0:0.##}M' -f ($Value / 1000000))
   }
-  Write-Host "Providers cx-free : deepseek (defaut), deepseek-pro, kimi-k2.6, kimi-k3, hf, nvidia, glm"
-  exit 0
+  if ($Value -ge 1000) {
+    return ('{0:0.#}k' -f ($Value / 1000))
+  }
+  return [string]$Value
 }
 
-# --- provider -> nom de modele LiteLLM (doit matcher config.yaml du proxy) ---
-switch ($Provider.ToLower()) {
-  { $_ -in 'deepseek','ds','deepseek-flash' } { $model = 'deepseek-flash' }
-  'deepseek-pro'                              { $model = 'deepseek-pro' }
-  { $_ -in 'kimi','kimi-k2.6','k2.6' }        { $model = 'kimi-k2.6' }
-  { $_ -in 'kimi-k3','k3' }                   { $model = 'kimi-k3' }
-  { $_ -in 'hf','huggingface','qwen' }        { $model = 'hf' }
-  { $_ -in 'nvidia','nvidia-deepseek','nv' }  { $model = 'nvidia-deepseek' }
-  { $_ -in 'glm','nvidia-glm' }               { $model = 'nvidia-glm' }
-  default { Write-Error "Provider inconnu '$Provider' (deepseek|deepseek-pro|kimi-k2.6|kimi-k3|hf|nvidia|glm)"; exit 2 }
+function Get-Catalog() {
+  if (-not (Test-Path -LiteralPath $catalogPath)) {
+    throw "Catalogue Codex Home introuvable : $catalogPath"
+  }
+  return (Get-Content -Raw -LiteralPath $catalogPath | ConvertFrom-Json)
 }
 
-# --- proxy LiteLLM 4000 up (sinon demarrage detache) ---
-if (-not (Test-ProxyUp)) {
-  Write-Host "[cx-free] proxy 4000 eteint -> demarrage..."
-  $env:PYTHONUTF8 = '1'; $env:PYTHONIOENCODING = 'utf-8'
-  if (Test-Path "$proxyDir\.env") {
-    Get-Content "$proxyDir\.env" | ForEach-Object {
-      if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$') {
-        $v = $matches[2].Trim().Trim('"').Trim("'"); if ($v) { Set-Item -Path "Env:$($matches[1])" -Value $v }
-      }
+function Show-Models() {
+  $catalog = Get-Catalog
+  $rows = foreach ($name in $targetModels.Keys) {
+    $spec = $targetModels[$name]
+    $entry = @($catalog.models | Where-Object { $_.slug -eq $name } | Select-Object -First 1)
+    $context = if ($entry) { [int]$entry.context_window } else { $spec.Context }
+    $modalities = if ($entry -and $entry.input_modalities) { (@($entry.input_modalities) -join ',') } else { 'text' }
+    [pscustomobject]@{
+      Modele = $name
+      Libelle = $spec.Label
+      Contexte = Format-Context $context
+      Modalites = $modalities
+      Etat = if ($entry) { 'configure' } else { 'absent du catalogue' }
     }
   }
-  Start-Process litellm -ArgumentList '--config','config.yaml','--port','4000' -WorkingDirectory $proxyDir -WindowStyle Hidden | Out-Null
-  for ($i = 0; $i -lt 45; $i++) { Start-Sleep -Seconds 1; if (Test-ProxyUp) { Start-Sleep -Seconds 2; break } }
+  $rows | Format-Table -AutoSize
 }
-if (-not (Test-ProxyUp)) { Write-Error "[cx-free] proxy LiteLLM (port 4000) indisponible."; exit 1 }
 
-# --- construire le prompt selon le mode ---
-if ($Mode -eq 'review' -or $Mode -eq 'critique') {
-  if ($Base) { $cible = "Compare la branche a la reference '$Base' : ``git diff $Base...HEAD`` (+ ``git log --oneline $Base..HEAD``)." }
-  else       { $cible = "Relis le travail NON COMMITE : ``git status --short --untracked-files=all``, puis ``git diff`` et ``git diff --cached``, et lis les fichiers non suivis." }
+function Show-Status() {
+  $proxy = Test-PortUp 4100
+  $bridge = Test-PortUp 4101
+  Write-Output "Home Codex Home : $freeHome"
+  Write-Output ("Proxy LiteLLM 4100 : " + $(if ($proxy) { 'UP' } else { 'DOWN' }))
+  Write-Output ("Pont API 4101 : " + $(if ($bridge) { 'UP' } else { 'DOWN' }))
+  Write-Output 'Les commandes cx-free ne demarrent pas l application graphique Codex.'
+  Write-Output ("Modeles : " + ($targetModels.Keys -join ', '))
+}
 
-  if ($Mode -eq 'review') {
-    $promptText = @"
-Tu es un relecteur de code senior. Fais une revue de code RIGOUREUSE des changements git de ce depot, EN LECTURE SEULE (ne modifie rien, ne committe rien).
-$cible
-Lis les fichiers concernes pour le contexte, pas seulement le diff. Ne signale que des problemes REELS et verifiables (zero invention).
-Rends en francais :
-1. Resume (1-3 phrases).
-2. Findings tries du plus grave au plus leger : [CRITIQUE|ELEVEE|MOYENNE|FAIBLE] fichier:ligne - probleme - correctif propose (extrait de code si utile). Couvre : bugs/logique, securite (injection, secrets, authz, validation), cas limites et erreurs non gerees, regressions, concurrence, perf, puis qualite (lisibilite, duplication, nommage).
-3. Recommandation finale : OK a merger / a corriger avant merge / bloquant.
-Si rien de notable : dis-le clairement.
-"@
+function Start-CodexHomeHeadless() {
+  if (-not (Test-Path -LiteralPath $homeLauncher)) {
+    throw "Lanceur Codex Home introuvable : $homeLauncher"
+  }
+  if (-not (Test-Path -LiteralPath $Repo -PathType Container)) {
+    throw "Depot ou dossier de travail introuvable : $Repo"
+  }
+
+  # Variable uniquement dans ce processus et ses enfants. Le home original reste intact.
+  $env:CODEX_HOME = $freeHome
+  $pwsh = Get-Command pwsh -ErrorAction Stop
+  $pwshPath = if ($pwsh.Source) { $pwsh.Source } else { $pwsh.Path }
+  $launcherOutput = @(& $pwshPath -NoLogo -NoProfile -File $homeLauncher -Model $resolvedModel -Headless 2>&1)
+  $launcherCode = $LASTEXITCODE
+  if ($launcherCode -ne 0) {
+    $tail = ($launcherOutput | Select-Object -Last 12) -join [Environment]::NewLine
+    throw ("Codex Home proxy indisponible (code {0}).{1}{2}" -f $launcherCode, [Environment]::NewLine, $tail)
+  }
+  if (-not (Test-Path -LiteralPath $configPath)) {
+    throw "Configuration Codex Home absente apres preparation : $configPath"
+  }
+}
+
+function Test-Health() {
+  Start-CodexHomeHeadless
+  $headers = @{ Authorization = 'Bearer sk-codex-local' }
+  $response = Invoke-RestMethod -Uri $bridgeModelsUri -Headers $headers -TimeoutSec 15
+  $ids = @($response.data | ForEach-Object { $_.id })
+  [pscustomobject]@{
+    Home = $freeHome
+    Proxy4100 = if (Test-PortUp 4100) { 'UP' } else { 'DOWN' }
+    Bridge4101 = if (Test-PortUp 4101) { 'UP' } else { 'DOWN' }
+    SelectedModel = $resolvedModel
+    SelectedModelVisible = ($ids -contains $resolvedModel)
+    ModelCount = $ids.Count
+  } | Format-List
+}
+
+function Get-ReviewPrompt([string]$ReviewMode) {
+  $target = if ($Base) {
+    "Compare la branche courante a '$Base' avec git diff $Base...HEAD et git log --oneline $Base..HEAD."
   } else {
-    $promptText = @"
-Tu es un relecteur de code ADVERSARIAL (red team). Cherche ACTIVEMENT le pire bug cache dans les changements git de ce depot, comme si un incident de prod en dependait. EN LECTURE SEULE (ne modifie rien, ne committe rien).
-$cible
-Lis les fichiers concernes pour comprendre le contexte d'execution reel. Pour chaque finding, donne un scenario concret de reproduction. Zero hallucination : chaque finding pointe un fichier:ligne reel ; si non prouvable, classe "a verifier".
-Rends en francais :
-1. Le bug le plus dangereux (s'il existe) : fichier:ligne, scenario de repro, impact, correctif.
-2. Autres findings tries par gravite : [CRITIQUE|ELEVEE|MOYENNE|FAIBLE] fichier:ligne - probleme - repro - correctif. Vise : valeurs limites, null/undefined, erreurs reseau/timeout, races, ordres d'await, secrets, contournement authz, injection (SQL/commande/prompt), dates/fuseaux, argent/arrondis, idempotence, retries.
-3. Angles verifies sans probleme trouve (couverture).
-4. Verdict : bloquant / a corriger / OK.
+    'Relis le travail non commite avec git status, git diff, git diff --cached et les fichiers non suivis pertinents.'
+  }
+
+  if ($ReviewMode -eq 'review') {
+    return @"
+Tu es un relecteur de code senior. Fais une revue rigoureuse des changements de ce depot, en lecture seule. $target
+Lis les fichiers concernes pour le contexte, pas seulement le diff. Ne signale que des problemes reels et verifiables.
+Reponds en francais :
+1. Resume court.
+2. Findings tries par gravite : [CRITIQUE|ELEVEE|MOYENNE|FAIBLE] fichier:ligne - probleme - correctif propose.
+3. Couvre bugs, securite, erreurs reseau, cas limites, concurrence, performance et regressions.
+4. Verdict : OK, a corriger ou bloquant.
 "@
   }
-  $sandbox = 'read-only'
-} else {
-  # task
-  if (-not $Prompt) { Write-Error "[cx-free] -Prompt requis en mode task."; exit 2 }
-  $promptText = $Prompt
-  $sandbox = if ($Write) { 'workspace-write' } else { 'read-only' }
+
+  return @"
+Tu es un relecteur de code adversarial. Cherche activement le bug le plus dangereux dans les changements de ce depot, en lecture seule. $target
+Pour chaque finding, donne un scenario de reproduction concret, un impact et un correctif. Ne fabrique rien : chaque finding doit pointer un fichier et une ligne reels.
+Reponds en francais :
+1. Bug le plus dangereux, s'il existe.
+2. Autres findings tries par gravite.
+3. Angles verifies sans probleme.
+4. Verdict : bloquant, a corriger ou OK.
+"@
 }
 
-# --- executer codex exec force sur le provider gratuit ---
-$outFile = Join-Path $env:TEMP ("cx-free-" + [System.Guid]::NewGuid().ToString('N') + ".txt")
-$logFile = Join-Path $env:TEMP ("cx-free-log-" + [System.Guid]::NewGuid().ToString('N') + ".txt")
-Write-Host "[cx-free] mode=$Mode provider=$Provider modele=$model sandbox=$sandbox repo=$Repo"
-Write-Host "[cx-free] codex exec en cours (via proxy LiteLLM)..."
-$codexArgs = @(
-  'exec',
-  '-c','model_provider=litellm',
-  '-m', $model,
-  '--sandbox', $sandbox,
-  '--skip-git-repo-check',
-  '--color','never',
-  '-C', $Repo,
-  '-o', $outFile,
-  $promptText
-)
-# stdin vide ferme (sinon codex exec bloque sur "Reading additional input from stdin...").
-# Tout le bruit de codex (logs MCP/skills) -> fichier ; on n'affiche que le rapport final.
-$null | & codex @codexArgs *> $logFile
-$code = $LASTEXITCODE
+function Get-PlanPrompt() {
+  $request = if ([string]::IsNullOrWhiteSpace($Prompt)) {
+    'Analyse le depot courant et propose les prochaines ameliorations prioritaires.'
+  } else {
+    $Prompt
+  }
+  return @"
+Tu es un architecte logiciel pragmatique. Analyse le depot en lecture seule et prepare un plan d implementation pour cette demande :
+$request
+Inspecte le code reel, les tests et la configuration utile. Ne modifie rien et n invente aucun fichier ou endpoint.
+Reponds en francais avec : contexte constate, problemes prouves, plan numerote, fichiers concernes, tests a ajouter ou executer, risques et criteres d acceptation.
+"@
+}
 
-Write-Host ""
-Write-Host "===== RAPPORT CODEX ($Provider / $model) ====="
-if ((Test-Path $outFile) -and ((Get-Item $outFile).Length -gt 0)) {
-  Get-Content -Raw $outFile
-} else {
-  Write-Host "(aucun rapport final capture)"
+function Get-AgentPrompt() {
+  $mission = if ([string]::IsNullOrWhiteSpace($Prompt)) {
+    'Inspecte le depot et propose la prochaine action utile.'
+  } else {
+    $Prompt
+  }
+  return @"
+Tu es un agent Codex delegue depuis Claude Code. Travaille dans le depot courant avec methode et sans inventer le code ou l architecture.
+Mission :
+$mission
+
+Inspecte d abord le contexte reel. Execute les verifications utiles. En lecture seule, ne modifie rien. Si l ecriture est autorisee par le sandbox, applique uniquement les changements necessaires, puis verifie-les avec des tests cibles. Rends un compte rendu en francais avec les fichiers touches, les commandes executees, les resultats, les risques et ce qui reste a faire.
+"@
 }
-if ($code -ne 0) {
-  Write-Host ""
-  Write-Host "----- codex a quitte (code $code) ; fin du log : -----"
-  if (Test-Path $logFile) { Get-Content -Tail 15 $logFile }
+
+function Invoke-Codex([string]$RunMode) {
+  if (-not (Get-Command codex -ErrorAction SilentlyContinue)) {
+    throw 'Codex CLI introuvable dans le PATH.'
+  }
+  if ($RunMode -in @('task', 'agent') -and [string]::IsNullOrWhiteSpace($Prompt)) {
+    throw "Le mode $RunMode exige -Prompt."
+  }
+
+  Start-CodexHomeHeadless
+  $env:CODEX_HOME = $freeHome
+  $sandbox = if ($RunMode -in @('task', 'agent') -and $Write) { 'workspace-write' } else { 'read-only' }
+  $promptText = switch ($RunMode) {
+    'review' { Get-ReviewPrompt 'review' }
+    'critique' { Get-ReviewPrompt 'critique' }
+    'plan' { Get-PlanPrompt }
+    'agent' { Get-AgentPrompt }
+    default { $Prompt }
+  }
+
+  $suffix = [Guid]::NewGuid().ToString('N')
+  $outFile = Join-Path $env:TEMP ("cx-free-home-$suffix.txt")
+  $logFile = Join-Path $env:TEMP ("cx-free-home-$suffix.log")
+  $codexCommand = Get-Command codex -ErrorAction Stop
+  $codexPath = if ($codexCommand.Source) { $codexCommand.Source } else { $codexCommand.Path }
+  $codexArguments = @(
+    'exec',
+    '-c', 'model_provider=litellm',
+    '-m', $resolvedModel,
+    '--sandbox', $sandbox,
+    '--skip-git-repo-check',
+    '--color', 'never',
+    '-C', $Repo,
+    '-o', $outFile,
+    $promptText
+  )
+
+  Write-Host "[cx-free] Codex Home : modele=$resolvedModel sandbox=$sandbox repo=$Repo"
+  Write-Host '[cx-free] execution headless en cours via le proxy 4100/4101...'
+  $code = 1
+  try {
+    $null | & $codexPath @codexArguments *> $logFile
+    $code = $LASTEXITCODE
+    Write-Host ''
+    Write-Host "===== RAPPORT CODEX-HOME ($resolvedModel) ====="
+    if ((Test-Path -LiteralPath $outFile) -and ((Get-Item -LiteralPath $outFile).Length -gt 0)) {
+      Get-Content -Raw -LiteralPath $outFile
+    } else {
+      Write-Host '(aucun rapport final capture)'
+    }
+    if ($code -ne 0) {
+      Write-Host ''
+      Write-Host "----- codex a quitte avec le code $code ; fin du log -----"
+      if (Test-Path -LiteralPath $logFile) {
+        Get-Content -Tail 20 -LiteralPath $logFile
+      }
+    }
+  } finally {
+    Remove-Item -LiteralPath $outFile -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $logFile -ErrorAction SilentlyContinue
+  }
+  exit $code
 }
-Remove-Item $outFile, $logFile -ErrorAction SilentlyContinue
-exit $code
+
+switch ($Mode) {
+  'status' { Show-Status; exit 0 }
+  'models' { Show-Models; exit 0 }
+  'health' { Test-Health; exit 0 }
+  default { Invoke-Codex $Mode }
+}
